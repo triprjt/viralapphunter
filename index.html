@@ -261,6 +261,43 @@
     /* Locked button state on Fetch / Developer */
     button.fetch-btn.locked, button.dev-link.locked { color: var(--muted); border-style: dashed; cursor: pointer; }
     button.fetch-btn.locked:hover { border-color: #FF6B6B; color: var(--text); }
+
+    /* ---- Mobile (≤ 720px) ---- */
+    .tb-extra { display: inline; }
+    @media (max-width: 720px) {
+      header { padding: 12px 16px; gap: 8px; align-items: center; }
+      header h1 { font-size: 16px; flex: 1 1 auto; min-width: 0; }
+      #dbmeta { display: none; }
+      header > div:last-child { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+      .tier-badge, .disco-pill, .notif-bell { white-space: nowrap; }
+      .tier-badge { font-size: 11px; padding: 4px 10px; }
+      .theme-toggle { width: 28px; height: 28px; font-size: 13px; }
+      .notif-bell { padding: 3px 9px; font-size: 12px; }
+      .notif-badge { top: -5px; right: -5px; padding: 1px 5px; font-size: 9px; min-width: 16px; }
+      .disco-pill { padding: 3px 10px; font-size: 11px; }
+      .disco-pill #disco-label { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+      .disco-pill .disco-bar { width: 50px; }
+      .tabs { padding: 0 12px; }
+      .tab { padding: 10px 12px; font-size: 13px; }
+      /* Notif + disco panels span the screen on small viewports */
+      .notif-panel, .disco-panel { width: calc(100vw - 24px); right: -8px; max-width: none; }
+      .breadcrumb { padding: 8px 0 12px; font-size: 12px; }
+      .breadcrumb button.back { padding: 4px 8px; }
+      /* Onboarding + upgrade modals: less padding, tighter type */
+      .ob-modal, .up-modal { padding: 24px 18px; max-height: 92vh; }
+      .ob-step h2 { font-size: 22px; }
+      .up-modal h2 { font-size: 22px; }
+      .up-tiers { grid-template-columns: 1fr; }
+    }
+
+    /* ---- Very narrow phones (≤ 480px) ---- */
+    @media (max-width: 480px) {
+      header h1 { font-size: 15px; }
+      .disco-pill { display: none !important; }
+      .tier-badge .tb-extra { display: none; }    /* "FREE ✨ Upgrade" → "FREE" only */
+      .tabs { padding: 0 8px; }
+      .tab { padding: 9px 10px; font-size: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -1921,7 +1958,7 @@
       tb.style.display = 'inline-flex';
       tb.classList.remove('tier-free', 'tier-solo', 'tier-pro', 'tier-studio');
       tb.classList.add('tier-' + userPlan);
-      if (userPlan === 'free') tb.textContent = 'FREE · ✨ Upgrade';
+      if (userPlan === 'free') tb.innerHTML = 'FREE<span class="tb-extra"> · ✨ Upgrade</span>';
       else if (userPlan === 'solo') tb.textContent = 'SOLO';
       else if (userPlan === 'pro') tb.textContent = 'PRO';
       else if (userPlan === 'studio') tb.textContent = 'STUDIO';
