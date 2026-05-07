@@ -4,8 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Play Store Reviews Dashboard</title>
+  <script>
+    // Set theme synchronously before paint to avoid flash. localStorage 'vf-theme' wins; default = dark.
+    (function() {
+      try {
+        var saved = localStorage.getItem('vf-theme');
+        if (saved === 'light') document.documentElement.dataset.theme = 'light';
+        // dark = default (no attribute set)
+      } catch (e) {}
+    })();
+  </script>
   <style>
+    /* ---- Theme tokens ---- */
+    /* Default = dark. Light is opt-in via [data-theme="light"] on <html>. */
     :root {
+      /* Semantic tokens (theme-aware) */
       --bg: #0f1115;
       --panel: #171a21;
       --panel-2: #1f242d;
@@ -15,6 +28,35 @@
       --accent: #6ea8ff;
       --star: #f2c14e;
       --bad: #ff7a7a;
+
+      /* Brand tokens (constant in both themes — these carry brand identity, not theme) */
+      --mint: #06D6A0;
+      --mint-deep: #04B587;
+      --coral: #FF6B6B;
+      --coral-deep: #F04848;
+      --sunshine: #FFD23F;
+      --violet: #7C3AED;
+      --violet-soft: #A78BFA;
+      --ink: #0B1220;
+      --peach: #FFE8D6;
+    }
+    :root[data-theme="light"] {
+      /* Light mirrors the landing-page palette */
+      --bg: #FFFCF5;
+      --panel: #FFFFFF;
+      --panel-2: #F1F5F9;
+      --border: #E5E7EB;
+      --text: #0F172A;
+      --muted: #64748B;
+      --accent: #7C3AED;     /* violet replaces dashboard's blue */
+      --star: #FFD23F;       /* sunshine replaces dashboard's yellow */
+      --bad: #EF4444;        /* brighter red */
+      /* Brand tokens stay the same as in dark — inherited */
+    }
+    /* Smooth theme switching */
+    html, body, .panel, .step, .price, .ftr-card, .niche-row, .ob-modal, .up-modal,
+    .notif-panel, .disco-panel, button, input, select, .gap-card, table {
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -146,6 +188,10 @@
     .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; margin-right: 4px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ---- Theme toggle in header ---- */
+    .theme-toggle { background: none; border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: border-color 0.12s, background 0.12s, transform 0.12s; }
+    .theme-toggle:hover { border-color: var(--accent); background: var(--panel-2); transform: rotate(20deg); }
+
     /* ---- Tier badge in header ---- */
     .tier-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-decoration: none; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
     .tier-badge:hover { text-decoration: none; transform: translateY(-1px); }
@@ -158,7 +204,7 @@
     .ob-overlay { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.78); backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .ob-modal { background: var(--bg); color: var(--text); border-radius: 18px; max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.5); border: 1px solid var(--border); padding: 36px; position: relative; }
     .ob-progress { display: flex; gap: 6px; margin-bottom: 24px; }
-    .ob-progress span { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; }
+    .ob-progress span { flex: 1; height: 4px; background: var(--border); border-radius: 4px; }
     .ob-progress span.done { background: #FF6B6B; }
     .ob-progress span.current { background: #FFD23F; }
     .ob-step h2 { font-size: 26px; line-height: 1.2; margin: 0 0 10px; font-weight: 800; letter-spacing: -0.01em; }
@@ -222,6 +268,9 @@
     <h1>Google Play Reviews</h1>
     <div style="display:flex;align-items:center;gap:16px;position:relative">
       <div class="meta" id="dbmeta">loading…</div>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <span id="theme-icon">🌙</span>
+      </button>
       <div id="disco-pill" class="disco-pill" style="display:none" title="Background discovery progress">
         <span class="dot"></span>
         <span id="disco-label">—</span>
@@ -1843,6 +1892,27 @@
     const userIsFree = userPlan === 'free';
     const userIsPaid = ['solo', 'pro', 'studio'].includes(userPlan);
     let userUsage = {}; // {review_fetch: 1, developer_lookup: 0, ...}
+
+    // Theme toggle in header (theme attribute already set synchronously in <head>)
+    (() => {
+      const btn = document.getElementById('theme-toggle');
+      const icon = document.getElementById('theme-icon');
+      if (!btn || !icon) return;
+      function refreshIcon() {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        icon.textContent = cur === 'dark' ? '🌙' : '☀️';
+        btn.title = cur === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+      }
+      refreshIcon();
+      btn.onclick = () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = cur === 'light' ? 'dark' : 'light';
+        if (next === 'light') document.documentElement.dataset.theme = 'light';
+        else delete document.documentElement.dataset.theme;
+        try { localStorage.setItem('vf-theme', next); } catch (e) {}
+        refreshIcon();
+      };
+    })();
 
     // Tier badge in header
     (() => {
