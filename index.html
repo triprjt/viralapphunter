@@ -1556,7 +1556,7 @@
       nicheState.categoryId = cat.id;
 
       content.innerHTML = `
-        <div class="filters" style="grid-template-columns:1.5fr 1fr">
+        <div class="filters">
           <label>Category
             <select id="n-cat">
               ${cats.map(c => `<option value="${escapeHtml(c.id)}" ${c.id===cat.id?'selected':''}>${c.cached?'✓':'⬇'} ${escapeHtml(c.name)}${c.cached?` · ${c.app_count.toLocaleString()} apps`:''}</option>`).join('')}
@@ -1572,7 +1572,7 @@
           </label>
         </div>
         <div class="stats" id="n-stats"></div>
-        <div id="n-table-wrap"></div>
+        <div class="table-scroll" id="n-table-wrap"></div>
       `;
 
       $('n-cat').onchange = async (ev) => {
