@@ -336,12 +336,12 @@
     button.fetch-btn.locked:hover { border-color: #FF6B6B; color: var(--text); }
 
     /* ---- Cell clamp (universal overflow handler for long table content) ---- */
-    .cell-clamp { position: relative; max-height: 64px; overflow: hidden; transition: max-height 0.18s ease; }
-    .cell-clamp.expanded { max-height: 320px; overflow-y: auto; }
-    /* Subtle fade at the bottom so the user senses there's more */
-    .cell-clamp:not(.expanded)::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px; background: linear-gradient(180deg, transparent, var(--panel)); pointer-events: none; }
-    button.cell-clamp-btn { display: inline-block; margin-top: 4px; padding: 2px 8px; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
-    button.cell-clamp-btn:hover { border-color: var(--accent); background: var(--panel-2); }
+    .cell-clamp { position: relative; max-height: 38px; overflow: hidden; transition: max-height 0.18s ease; }
+    .cell-clamp.expanded { max-height: 280px; overflow-y: auto; padding-bottom: 4px; }
+    /* Visible fade at the bottom so the eye sees something is hidden */
+    .cell-clamp:not(.expanded)::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 22px; background: linear-gradient(180deg, transparent 0%, var(--panel) 80%); pointer-events: none; }
+    button.cell-clamp-btn { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 3px 10px; background: var(--panel-2); color: var(--accent); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1; }
+    button.cell-clamp-btn:hover { border-color: var(--accent); background: var(--panel); }
 
     /* ---- Mobile (≤ 720px) ---- */
     .tb-extra { display: inline; }
@@ -2195,22 +2195,29 @@
     // ---- Cell-clamp: scan a rendered table for .cell-clamp divs and add a "more / less" button ----
     function attachClampButtons(rootEl) {
       if (!rootEl) return;
-      rootEl.querySelectorAll('.cell-clamp').forEach(el => {
+      const measureAndAttach = (el) => {
         if (el.dataset.clampWired === '1') return;
-        // Defer measurement to next frame so layout has settled
-        requestAnimationFrame(() => {
-          if (el.scrollHeight - el.clientHeight <= 2) return; // content fits, no button needed
-          el.dataset.clampWired = '1';
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'cell-clamp-btn';
-          btn.textContent = 'show more ↓';
-          btn.onclick = (ev) => {
-            ev.stopPropagation();
-            const expanded = el.classList.toggle('expanded');
-            btn.textContent = expanded ? 'show less ↑' : 'show more ↓';
-          };
-          el.insertAdjacentElement('afterend', btn);
+        if (el.scrollHeight - el.clientHeight <= 2) return; // content fits, no button needed
+        el.dataset.clampWired = '1';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cell-clamp-btn';
+        btn.textContent = 'show more ↓';
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          const expanded = el.classList.toggle('expanded');
+          btn.textContent = expanded ? 'show less ↑' : 'show more ↓';
+        };
+        el.insertAdjacentElement('afterend', btn);
+      };
+      rootEl.querySelectorAll('.cell-clamp').forEach(el => {
+        // First measure on next frame
+        requestAnimationFrame(() => measureAndAttach(el));
+        // Re-measure once after a short delay (catches async image loads inside the cell)
+        setTimeout(() => measureAndAttach(el), 250);
+        // Also re-measure when any child <img> loads
+        el.querySelectorAll('img').forEach(img => {
+          if (!img.complete) img.addEventListener('load', () => measureAndAttach(el), { once: true });
         });
       });
     }
