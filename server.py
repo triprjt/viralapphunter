@@ -545,8 +545,17 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             try:
                 html = (Path(__file__).parent / "index.html").read_text()
-                # Inject user info as a meta tag the dashboard can read
-                meta = f'<meta name="vf-user" data-email="{user["email"]}" data-name="{user.get("name") or ""}" data-admin="{"1" if user.get("is_admin") else "0"}" />'
+                # Inject user info as a meta tag the dashboard can read.
+                meta = (
+                    f'<meta name="vf-user" '
+                    f'data-email="{user["email"]}" '
+                    f'data-name="{user.get("name") or ""}" '
+                    f'data-admin="{"1" if user.get("is_admin") else "0"}" '
+                    f'data-plan="{user.get("plan", "free")}" '
+                    f'data-onboarded="{"1" if user.get("onboarded") else "0"}" '
+                    f'data-categories="{user.get("picked_categories") or ""}" '
+                    f'data-goal="{user.get("picked_goal") or ""}" />'
+                )
                 html = html.replace("</head>", meta + "</head>", 1)
                 self._send_html(200, html)
             except Exception as e:
@@ -568,6 +577,31 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(200, {"user": user})
             return
 
+        if url.path == "/api/me/usage":
+            user = self._current_user()
+            if not user:
+                self._send_json(401, {"ok": False})
+                return
+            self._send_json(200, {
+                "plan": user.get("plan", "free"),
+                "usage": auth_mod.get_feature_usage_summary(user["id"]),
+            })
+            return
+
+        if url.path == "/api/onboarding/state":
+            user = self._current_user()
+            if not user:
+                self._send_json(401, {"ok": False})
+                return
+            cats = (user.get("picked_categories") or "").split(",")
+            cats = [c for c in cats if c]
+            self._send_json(200, {
+                "onboarded": user.get("onboarded", False),
+                "picked_categories": cats,
+                "picked_goal": user.get("picked_goal") or None,
+            })
+            return
+
         if url.path == "/api/status":
             self._send_json(200, {
                 "items": _all_status(),
@@ -585,6 +619,43 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         url = urlparse(self.path)
+
+        # ---- onboarding ----
+        if url.path == "/api/onboarding/complete":
+            user = self._current_user()
+            if not user:
+                self._send_json(401, {"ok": False, "error": "not signed in"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", 0) or 0)
+                body = json.loads(self.rfile.read(length) or b"{}") if length else {}
+            except Exception:
+                body = {}
+            cats_in = body.get("categories") or []
+            if not isinstance(cats_in, list):
+                cats_in = []
+            cats = ",".join([str(c)[:80] for c in cats_in if c])[:600]
+            goal = (body.get("goal") or "")[:60]
+            conn = sqlite3.connect(DB_PATH, timeout=30.0)
+            try:
+                conn.execute("PRAGMA busy_timeout=30000")
+                conn.execute(
+                    "UPDATE users SET onboarded=1, picked_categories=?, picked_goal=? WHERE id=?",
+                    (cats, goal, user["id"]),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+            user["onboarded"] = True
+            user["picked_categories"] = cats
+            user["picked_goal"] = goal
+            try:
+                email_mod.fire_onboarded(user)
+            except Exception:
+                pass
+            self._send_json(200, {"ok": True})
+            return
+
         if url.path == "/api/fetch":
             qs = parse_qs(url.query)
             pkg = (qs.get("pkg") or [""])[0].strip()
@@ -593,6 +664,15 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             user = self._current_user()
             uid = user["id"] if user else None
+            # Plan-aware gate: Free plan gets 1 distinct review_fetch lifetime.
+            if user:
+                allowed, details = auth_mod.can_use_feature(user["id"], "review_fetch", user.get("plan", "free"), pkg)
+                if not allowed:
+                    try: email_mod.fire_paywall_hit(user, "review_fetch")
+                    except Exception: pass
+                    self._send_json(403, {"ok": False, "error": "free_tier_used", "feature": "review_fetch", **details})
+                    return
+                auth_mod.record_feature_use(user["id"], "review_fetch", pkg)
             self._send_json(202, _start_fetch(pkg, uid))
             return
         if url.path == "/api/discover_category":
@@ -616,6 +696,16 @@ class Handler(SimpleHTTPRequestHandler):
             if not dev_id and not dev_name:
                 self._send_json(400, {"ok": False, "error": "devId or name required"})
                 return
+            user = self._current_user()
+            # Plan-aware gate: Free plan gets 1 distinct developer_lookup lifetime.
+            if user:
+                allowed, details = auth_mod.can_use_feature(user["id"], "developer_lookup", user.get("plan", "free"), dev_id or dev_name)
+                if not allowed:
+                    try: email_mod.fire_paywall_hit(user, "developer_lookup")
+                    except Exception: pass
+                    self._send_json(403, {"ok": False, "error": "free_tier_used", "feature": "developer_lookup", **details})
+                    return
+                auth_mod.record_feature_use(user["id"], "developer_lookup", dev_id or dev_name)
             try:
                 result = discover_developer(dev_id, dev_name)
                 self._send_json(200, {"ok": True, **result})

@@ -195,6 +195,71 @@ def _weekly_digest(user: dict, items: list[dict]) -> tuple[str, str, str]:
     return subject, html, text
 
 
+def _onboarded(user: dict) -> tuple[str, str, str]:
+    name = (user.get("name") or "there").split(" ")[0]
+    cats_csv = user.get("picked_categories") or ""
+    cats = [c for c in cats_csv.split(",") if c]
+    goal = user.get("picked_goal") or ""
+    cat_label = ", ".join(cats[:3]) if cats else "your categories"
+    first = cats[0] if cats else "your first niche"
+    subject = f"Your dashboard is ready, {name}"
+    html = _wrap_html(
+        f"You're in, {name} 🎉",
+        f"""<p>Welcome aboard. You picked <strong>{cat_label}</strong>.</p>
+        <p>Your dashboard is open at <a href=\"{SITE_URL}/app\">{SITE_URL}/app</a> — start with the <strong>{first}</strong> niches sorted by best opportunity.</p>
+        <p><strong>Quick wins for your first session:</strong></p>
+        <ol>
+          <li>Pick a niche with the lowest <em>"competitor count × max installs"</em> — that's the under-served corner.</li>
+          <li>Click any app to fetch its reviews. <strong>Your first fetch is free.</strong></li>
+          <li>Read the 1-star reviews — those complaints are the gaps to build into.</li>
+        </ol>
+        <p style=\"margin-top:24px\"><a href=\"{SITE_URL}/app\" style=\"display:inline-block;background:#FF6B6B;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:600\">Open dashboard</a></p>
+        <p style=\"font-size:12px;color:#888;margin-top:24px\">Reply to this email if anything's broken — it goes straight to the founder.</p>""",
+    )
+    text = (
+        f"Welcome, {name}.\n\nYou picked: {cat_label}.\n"
+        f"Open: {SITE_URL}/app\n\n"
+        f"Quick wins:\n"
+        f"  1. Pick the lowest-competition niche.\n"
+        f"  2. Fetch reviews on one app — free on us.\n"
+        f"  3. Read 1-star reviews; those are the gaps.\n"
+    )
+    return subject, html, text
+
+
+PAYWALL_LABELS = {
+    "review_fetch": ("review fetch", "fetch all reviews on a second app"),
+    "developer_lookup": ("developer lookup", "pull a second developer's full catalog"),
+    "ai_summary": ("AI gap report", "generate a second AI gap report"),
+}
+
+
+def _paywall_hit(user: dict, feature: str) -> tuple[str, str, str]:
+    label, action = PAYWALL_LABELS.get(feature, (feature.replace("_", " "), "use this feature again"))
+    subject = f"Liked your free {label}? Here's what $29 unlocks."
+    html = _wrap_html(
+        "You hit your free limit — what's next",
+        f"""<p>You just tried to {action}. The free plan includes <strong>1 lifetime sample</strong> per premium feature so you can feel the magic before paying.</p>
+        <p>Ready for unlimited?</p>
+        <p><strong>Solo · $29 / month</strong></p>
+        <ul>
+          <li>100 review fetches / month</li>
+          <li>50 AI gap reports / month</li>
+          <li>Unlimited developer-catalog lookups</li>
+          <li>Weekly email digest of new viral candidates</li>
+          <li>CSV export</li>
+        </ul>
+        <p style=\"margin-top:18px\"><a href=\"{SITE_URL}/app\" style=\"display:inline-block;background:#FF6B6B;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:600\">Upgrade to Solo →</a></p>
+        <p style=\"font-size:12px;color:#888;margin-top:18px\">Cancel any time, no contracts, no sales call.</p>""",
+    )
+    text = (
+        f"You hit the free limit on {label}. Solo at $29/mo unlocks: 100 review fetches, "
+        f"50 AI gap reports, unlimited developer lookups, weekly digest, CSV export.\n\n"
+        f"Upgrade: {SITE_URL}/app\n"
+    )
+    return subject, html, text
+
+
 def _reengage(user: dict) -> tuple[str, str, str]:
     name = (user.get("name") or "there").split(" ")[0]
     subject = "Found anything yet?"
@@ -238,6 +303,35 @@ def fire_first_fetch(user: dict, package_name: str, count: int) -> None:
                    "sent" if ok else "failed", err, mjid)
         if ok:
             _mark_fired(user["id"], "FIRST_FETCH")
+    _send_in_thread(_go)
+
+
+def fire_onboarded(user: dict) -> None:
+    """One-shot per user — sent immediately after they finish the onboarding modal."""
+    if _has_fired(user["id"], "ONBOARDED"):
+        return
+    subject, html, text = _onboarded(user)
+    def _go():
+        ok, mjid, err = _send_mailjet(user["email"], user.get("name"), subject, html, text)
+        _log_email(user["id"], user["email"], "ONBOARDED", subject,
+                   "sent" if ok else "failed", err, mjid)
+        if ok:
+            _mark_fired(user["id"], "ONBOARDED")
+    _send_in_thread(_go)
+
+
+def fire_paywall_hit(user: dict, feature: str) -> None:
+    """One-shot per (user, feature) — sent the first time a Free user hits the second-attempt paywall."""
+    trigger_key = f"PAYWALL_HIT_{feature.upper()}"
+    if _has_fired(user["id"], trigger_key):
+        return
+    subject, html, text = _paywall_hit(user, feature)
+    def _go():
+        ok, mjid, err = _send_mailjet(user["email"], user.get("name"), subject, html, text)
+        _log_email(user["id"], user["email"], trigger_key, subject,
+                   "sent" if ok else "failed", err, mjid)
+        if ok:
+            _mark_fired(user["id"], trigger_key)
     _send_in_thread(_go)
 
 

@@ -145,6 +145,76 @@
     .disco-eta { color: var(--muted); font-size: 12px; margin-top: 8px; }
     .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; margin-right: 4px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Tier badge in header ---- */
+    .tier-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-decoration: none; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+    .tier-badge:hover { text-decoration: none; transform: translateY(-1px); }
+    .tier-badge.tier-free { background: #FF6B6B; color: #fff; box-shadow: 0 2px 8px rgba(255,107,107,0.35); }
+    .tier-badge.tier-solo { background: #06D6A0; color: #0B1220; }
+    .tier-badge.tier-pro { background: #7C3AED; color: #fff; }
+    .tier-badge.tier-studio { background: #0B1220; color: #FFD23F; }
+
+    /* ---- Onboarding overlay ---- */
+    .ob-overlay { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.78); backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .ob-modal { background: var(--bg); color: var(--text); border-radius: 18px; max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.5); border: 1px solid var(--border); padding: 36px; position: relative; }
+    .ob-progress { display: flex; gap: 6px; margin-bottom: 24px; }
+    .ob-progress span { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; }
+    .ob-progress span.done { background: #FF6B6B; }
+    .ob-progress span.current { background: #FFD23F; }
+    .ob-step h2 { font-size: 26px; line-height: 1.2; margin: 0 0 10px; font-weight: 800; letter-spacing: -0.01em; }
+    .ob-step p.sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; line-height: 1.55; }
+    .ob-step h2 .gradient { background: linear-gradient(120deg, #FF6B6B, #7C3AED 50%, #06D6A0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .ob-tagline { background: linear-gradient(135deg, rgba(255,107,107,0.08), rgba(124,58,237,0.08)); padding: 14px 16px; border-radius: 10px; font-size: 14px; line-height: 1.55; margin-bottom: 24px; border-left: 3px solid #FF6B6B; }
+    .ob-search { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 14px; margin-bottom: 16px; }
+    .ob-search:focus { outline: 2px solid #7C3AED; }
+    .ob-cats { display: flex; flex-wrap: wrap; gap: 8px; max-height: 320px; overflow-y: auto; padding: 4px; }
+    .ob-cat-pill { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 999px; font-size: 13px; cursor: pointer; user-select: none; transition: border-color 0.12s, background 0.12s; }
+    .ob-cat-pill:hover { border-color: #7C3AED; }
+    .ob-cat-pill.selected { background: rgba(255, 107, 107, 0.18); border-color: #FF6B6B; color: var(--text); }
+    .ob-cat-pill.selected::before { content: '✓ '; color: #FF6B6B; font-weight: 800; }
+    .ob-counter { font-size: 12px; color: var(--muted); margin-top: 12px; }
+    .ob-goals { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .ob-goal { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+    .ob-goal:hover { border-color: #7C3AED; }
+    .ob-goal.selected { border-color: #FF6B6B; background: rgba(255, 107, 107, 0.08); }
+    .ob-goal h4 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+    .ob-goal p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.4; }
+    .ob-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .ob-skip { color: var(--muted); font-size: 13px; cursor: pointer; background: none; border: none; }
+    .ob-skip:hover { color: var(--text); }
+    .ob-btn { background: #FF6B6B; color: #fff; border: none; padding: 10px 22px; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.12s; }
+    .ob-btn:hover:not(:disabled) { background: #F04848; }
+    .ob-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ---- Upgrade modal ---- */
+    .up-overlay { position: fixed; inset: 0; background: rgba(15, 17, 21, 0.85); backdrop-filter: blur(6px); z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .up-modal { background: var(--bg); border-radius: 18px; max-width: 800px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.5); border: 1px solid var(--border); padding: 36px; position: relative; }
+    .up-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; line-height: 1; padding: 4px 8px; }
+    .up-close:hover { color: var(--text); }
+    .up-modal h2 { font-size: 26px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .up-modal p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+    .up-tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+    .up-tier { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+    .up-tier.featured { border: 2px solid #FF6B6B; position: relative; }
+    .up-tier.featured::before { content: 'RECOMMENDED'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #FF6B6B; color: #fff; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.06em; }
+    .up-tier h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 4px; }
+    .up-tier .amount { font-size: 28px; font-weight: 900; letter-spacing: -0.02em; margin: 2px 0 12px; }
+    .up-tier .amount span { font-size: 14px; color: var(--muted); font-weight: 500; }
+    .up-tier ul { list-style: none; padding: 0; margin: 12px 0 18px; font-size: 12px; line-height: 1.6; }
+    .up-tier ul li::before { content: '✓ '; color: #06D6A0; font-weight: 700; }
+    .up-tier .btn { display: block; text-align: center; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; text-decoration: none; }
+    .up-tier .btn-primary { background: #FF6B6B; color: #fff; }
+    .up-tier .btn-secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+
+    /* ---- Locked row overlay (Viral Ranking) ---- */
+    .locked-row-overlay { padding: 28px 16px; text-align: center; background: linear-gradient(180deg, rgba(15,17,21,0) 0%, rgba(15,17,21,0.4) 100%); border-top: 1px solid var(--border); margin-top: -1px; }
+    .locked-row-overlay strong { color: var(--text); font-size: 15px; }
+    .locked-row-overlay p { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
+    .locked-row-overlay .btn-upgrade { display: inline-block; background: #FF6B6B; color: #fff; padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; border: none; }
+
+    /* Locked button state on Fetch / Developer */
+    button.fetch-btn.locked, button.dev-link.locked { color: var(--muted); border-style: dashed; cursor: pointer; }
+    button.fetch-btn.locked:hover { border-color: #FF6B6B; color: var(--text); }
   </style>
 </head>
 <body>
@@ -158,6 +228,7 @@
         <div class="disco-bar"><div id="disco-bar-fill" style="width:0%"></div></div>
       </div>
       <div id="disco-panel" class="disco-panel"></div>
+      <a id="tier-badge" class="tier-badge tier-free" href="#" title="Your plan" style="display:none">FREE · ✨ Upgrade</a>
       <div id="notif-bell" class="notif-bell" title="Notifications">
         🔔 <span id="notif-badge" class="notif-badge empty">0</span>
       </div>
@@ -180,6 +251,69 @@
     <div id="breadcrumb" class="breadcrumb" style="display:none"></div>
     <div id="content" class="loading">Loading sql.js and reviews.db…</div>
   </main>
+
+  <!-- Onboarding overlay (shown on first /app load when user.onboarded == 0) -->
+  <div id="ob-overlay" class="ob-overlay" style="display:none">
+    <div class="ob-modal">
+      <div class="ob-progress">
+        <span class="current" data-step="1"></span>
+        <span data-step="2"></span>
+        <span data-step="3"></span>
+      </div>
+      <!-- Step 1 -->
+      <div class="ob-step" data-step="1">
+        <h2>Welcome to <span class="gradient">ViralFinder</span>, <span id="ob-name">there</span> 👋</h2>
+        <p class="sub">We crawl every app on Google Play, score them by velocity, and tell you exactly what's missing — so you stop guessing what to build.</p>
+        <div class="ob-tagline"><strong>Three quick questions to set up your dashboard.</strong> 60 seconds, then you're in.</div>
+        <div class="ob-actions">
+          <span></span>
+          <button class="ob-btn" id="ob-next-1">Let's go →</button>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div class="ob-step" data-step="2" style="display:none">
+        <h2>Which categories are you curious about?</h2>
+        <p class="sub">Pick 1–3. We'll surface gaps + viral candidates from these first. Change anytime.</p>
+        <input type="text" class="ob-search" id="ob-search" placeholder="Search categories…" />
+        <div class="ob-cats" id="ob-cats"></div>
+        <div class="ob-counter" id="ob-counter">Pick at least 1, max 3</div>
+        <div class="ob-actions">
+          <button class="ob-skip" id="ob-skip">Skip for now</button>
+          <button class="ob-btn" id="ob-next-2" disabled>Continue →</button>
+        </div>
+      </div>
+      <!-- Step 3 -->
+      <div class="ob-step" data-step="3" style="display:none">
+        <h2>What's your main goal right now?</h2>
+        <p class="sub">Just so we know what to highlight first. You can change this later.</p>
+        <div class="ob-goals">
+          <div class="ob-goal" data-goal="build_first_app"><h4>🚀 Build my first viral app</h4><p>Show me niches with the biggest gaps</p></div>
+          <div class="ob-goal" data-goal="spot_trend"><h4>📊 Spot the next trend</h4><p>Show me apps growing fastest right now</p></div>
+          <div class="ob-goal" data-goal="research_niche"><h4>🔍 Research a specific niche</h4><p>Let me dig into one category</p></div>
+          <div class="ob-goal" data-goal="just_curious"><h4>👀 Just curious / browsing</h4><p>I'll explore without a fixed goal</p></div>
+        </div>
+        <div class="ob-actions">
+          <button class="ob-skip" id="ob-back">← Back</button>
+          <button class="ob-btn" id="ob-finish" disabled>Open my dashboard →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upgrade modal (shown when free user hits a paywall or clicks tier badge) -->
+  <div id="up-overlay" class="up-overlay" style="display:none">
+    <div class="up-modal">
+      <button class="up-close" id="up-close" aria-label="Close">×</button>
+      <h2 id="up-headline">Upgrade to unlock more.</h2>
+      <p class="sub" id="up-sub">You're on Free. Pick a plan to keep going.</p>
+      <div class="up-tiers">
+        <div class="up-tier"><h4>Free</h4><div class="amount">$0</div><ul><li>5 categories</li><li>Top 25 apps each</li><li>1 lifetime sample of premium features</li></ul><a class="btn btn-secondary" href="#">Current plan</a></div>
+        <div class="up-tier featured"><h4>Solo</h4><div class="amount">$29<span>/mo</span></div><ul><li>All 33 categories</li><li>100 review fetches/mo</li><li>50 AI gap reports/mo</li><li>Unlimited dev lookups</li><li>Weekly digest</li></ul><a class="btn btn-primary" id="up-cta-solo" href="mailto:hello@viralfinder.app?subject=Upgrade%20me%20to%20Solo">Upgrade to Solo →</a></div>
+        <div class="up-tier"><h4>Pro</h4><div class="amount">$99<span>/mo</span></div><ul><li>Unlimited fetches</li><li>500 AI reports/mo</li><li>App idea generator</li><li>Daily digest + Slack</li></ul><a class="btn btn-secondary" href="mailto:hello@viralfinder.app?subject=Upgrade%20me%20to%20Pro">Choose Pro</a></div>
+        <div class="up-tier"><h4>Studio</h4><div class="amount">$299<span>/mo</span></div><ul><li>5K AI reports/mo</li><li>API + webhooks</li><li>White-label</li></ul><a class="btn btn-secondary" href="mailto:hello@viralfinder.app?subject=Studio%20enquiry">Contact us</a></div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
   <script>
@@ -491,10 +625,22 @@
     async function startFetch(pkg) {
       try {
         const r = await fetch('/api/fetch?pkg=' + encodeURIComponent(pkg), { method: 'POST' });
+        if (r.status === 403) {
+          const j = await r.json().catch(() => ({}));
+          if (j.error === 'free_tier_used') {
+            showUpgrade('review_fetch');
+            emitNotification('warn', `Free tier includes one review fetch — upgrade to Solo for unlimited.`);
+            return;
+          }
+        }
         const j = await r.json();
         const newState = j.state || 'queued';
         fetchStatus.set(pkg, { state: newState, count: 0, package_name: pkg });
         lastSeenStatus.set(pkg, newState);
+        // Mark feature as used locally so the next-button-render shows the lock
+        if (userIsFree) {
+          userUsage.review_fetch = (userUsage.review_fetch || 0) + 1;
+        }
         if (!j.already_running) {
           emitNotification('info', `⏳ Queued reviews fetch for ${pkg}${j.queue_size>0?` (queue: ${j.queue_size})`:''}`, { pkg });
         }
@@ -508,6 +654,14 @@
     function updateFetchButton(btn, pkg) {
       const s = fetchStatus.get(pkg);
       btn.className = 'fetch-btn';
+      // Free-tier lock when this is a NEW package and the user already used their lifetime fetch.
+      const lockedForFree = userIsFree && (!s || s.state === 'idle') && (userUsage.review_fetch || 0) >= 1;
+      if (lockedForFree) {
+        btn.classList.add('locked');
+        btn.textContent = '🔒 Upgrade';
+        btn.title = 'Free includes 1 lifetime review fetch. Upgrade for unlimited.';
+        return;
+      }
       if (!s || s.state === 'idle') {
         btn.textContent = '⬇ Fetch';
         btn.title = 'Fetch all reviews for this app';
@@ -557,12 +711,26 @@
     }
 
     async function fetchDeveloperApps(devId, devName) {
+      // Free-tier client-side gate: short-circuit if already used their lifetime lookup
+      if (userIsFree && (userUsage.developer_lookup || 0) >= 1) {
+        showUpgrade('developer_lookup');
+        throw new Error('paywall');
+      }
       showOverlay(`Searching Google Play for apps by ${devName}…`);
       try {
         const url = `/api/developer?devId=${encodeURIComponent(devId)}&name=${encodeURIComponent(devName||'')}`;
         const r = await fetch(url, { method: 'POST' });
+        if (r.status === 403) {
+          const j = await r.json().catch(() => ({}));
+          if (j.error === 'free_tier_used') {
+            hideOverlay();
+            showUpgrade('developer_lookup');
+            throw new Error('paywall');
+          }
+        }
         const j = await r.json();
         if (!j.ok) throw new Error(j.error || 'unknown error');
+        if (userIsFree) userUsage.developer_lookup = (userUsage.developer_lookup || 0) + 1;
         showOverlay(`Found ${j.found} apps. Loading…`);
         await reloadDb();
         return j;
@@ -573,6 +741,11 @@
 
     async function handleFetchClick(pkg) {
       const s = fetchStatus.get(pkg);
+      // Free-tier lock: if user already used their fetch and this isn't already done, show upgrade
+      if (userIsFree && (userUsage.review_fetch || 0) >= 1 && (!s || (s.state !== 'done' && s.state !== 'fetching' && s.state !== 'queued'))) {
+        showUpgrade('review_fetch');
+        return;
+      }
       if (s && s.state === 'done') {
         const target = s.table_name || (tables.includes('reviews_in') ? 'reviews_in' : tables[0]);
         await reloadDb();
@@ -1078,12 +1251,17 @@
         return dir * (av - bv);
       });
 
-      const total = candidates.length;
+      // Free-tier row cap: hard limit candidate set to top 25 across all pages.
+      const FREE_ROW_CAP = 25;
+      const totalUnrestricted = candidates.length;
+      const freeCapped = userIsFree && totalUnrestricted > FREE_ROW_CAP;
+      const visibleCandidates = freeCapped ? candidates.slice(0, FREE_ROW_CAP) : candidates;
+      const total = visibleCandidates.length;
       const pages = Math.max(1, Math.ceil(total / rankState.pageSize));
       if (rankState.page >= pages) rankState.page = pages - 1;
       if (rankState.page < 0) rankState.page = 0;
       const offset = rankState.page * rankState.pageSize;
-      const pageRows = candidates.slice(offset, offset + rankState.pageSize);
+      const pageRows = visibleCandidates.slice(offset, offset + rankState.pageSize);
 
       const avgVS = total ? candidates.reduce((s,r) => s + r.viral_score, 0) / total : 0;
 
@@ -1192,7 +1370,16 @@
               }).join('')}
             </tbody>
           </table>
+          ${freeCapped ? `<div class="locked-row-overlay">
+            <strong>+ ${(totalUnrestricted - FREE_ROW_CAP).toLocaleString()} more apps in this niche.</strong>
+            <p>Free shows the top 25 ranked apps. Solo unlocks every ranked app across all 33 categories.</p>
+            <button class="btn-upgrade" id="r-upgrade-cta">✨ Upgrade to Solo →</button>
+          </div>` : ''}
         `;
+        if (freeCapped) {
+          const up = document.getElementById('r-upgrade-cta');
+          if (up) up.onclick = () => showUpgrade('rows_locked');
+        }
         $('r-table-wrap').querySelectorAll('th[data-sort]').forEach(th => {
           th.onclick = () => {
             const c = th.dataset.sort;
@@ -1647,11 +1834,196 @@
       else if (v === 'admin') renderAdminView();
       renderBreadcrumb();
     }
-    // Reveal admin tab if vf-user meta says so
+    // ---- User identity + plan from server-injected meta ----
     const vfUser = document.querySelector('meta[name="vf-user"]');
+    const userPlan = (vfUser?.dataset.plan || 'free').toLowerCase();
+    const userOnboarded = vfUser?.dataset.onboarded === '1';
+    const userFirstName = (vfUser?.dataset.name || '').split(' ')[0] || 'there';
+    const userPickedCats = (vfUser?.dataset.categories || '').split(',').filter(Boolean);
+    const userIsFree = userPlan === 'free';
+    const userIsPaid = ['solo', 'pro', 'studio'].includes(userPlan);
+    let userUsage = {}; // {review_fetch: 1, developer_lookup: 0, ...}
+
+    // Tier badge in header
+    (() => {
+      const tb = document.getElementById('tier-badge');
+      if (!tb) return;
+      tb.style.display = 'inline-flex';
+      tb.classList.remove('tier-free', 'tier-solo', 'tier-pro', 'tier-studio');
+      tb.classList.add('tier-' + userPlan);
+      if (userPlan === 'free') tb.textContent = 'FREE · ✨ Upgrade';
+      else if (userPlan === 'solo') tb.textContent = 'SOLO';
+      else if (userPlan === 'pro') tb.textContent = 'PRO';
+      else if (userPlan === 'studio') tb.textContent = 'STUDIO';
+      tb.onclick = (ev) => {
+        ev.preventDefault();
+        if (userIsFree) showUpgrade();
+      };
+    })();
+
+    // Reveal admin tab if vf-user meta says so
     if (vfUser && vfUser.dataset.admin === '1') {
       document.querySelectorAll('.tab[data-admin-only="1"]').forEach(t => { t.style.display = ''; });
     }
+
+    // ---- Upgrade modal helpers ----
+    function showUpgrade(reason) {
+      const ov = document.getElementById('up-overlay');
+      const head = document.getElementById('up-headline');
+      const sub = document.getElementById('up-sub');
+      if (reason === 'review_fetch') {
+        head.textContent = 'You used your free review fetch.';
+        sub.textContent = 'Solo includes 100/month. Upgrade to keep going on a second app.';
+      } else if (reason === 'developer_lookup') {
+        head.textContent = 'You used your free developer lookup.';
+        sub.textContent = 'Solo includes unlimited developer-catalog lookups.';
+      } else if (reason === 'ai_summary') {
+        head.textContent = 'You used your free AI gap report.';
+        sub.textContent = 'Solo includes 50 AI gap reports per month.';
+      } else if (reason === 'rows_locked') {
+        head.textContent = 'See all ranked apps in this niche.';
+        sub.textContent = 'Free shows the top 25. Solo unlocks every ranked app across all 33 categories.';
+      } else {
+        head.textContent = 'Upgrade to unlock more.';
+        sub.textContent = `You're on ${userPlan.toUpperCase()}. Pick a plan to keep going.`;
+      }
+      ov.style.display = 'flex';
+    }
+    function hideUpgrade() {
+      document.getElementById('up-overlay').style.display = 'none';
+    }
+    document.getElementById('up-close').onclick = hideUpgrade;
+    document.getElementById('up-overlay').addEventListener('click', (ev) => {
+      if (ev.target.id === 'up-overlay') hideUpgrade();
+    });
+
+    // ---- Onboarding flow ----
+    if (vfUser && !userOnboarded) {
+      runOnboarding();
+    }
+
+    async function runOnboarding() {
+      const overlay = document.getElementById('ob-overlay');
+      document.getElementById('ob-name').textContent = userFirstName;
+      overlay.style.display = 'flex';
+      let step = 1;
+      let picks = new Set();
+      let goal = null;
+
+      function showStep(n) {
+        step = n;
+        overlay.querySelectorAll('.ob-step').forEach(s => s.style.display = (parseInt(s.dataset.step, 10) === n ? 'block' : 'none'));
+        overlay.querySelectorAll('.ob-progress span').forEach(s => {
+          const i = parseInt(s.dataset.step, 10);
+          s.classList.remove('done', 'current');
+          if (i < n) s.classList.add('done');
+          else if (i === n) s.classList.add('current');
+        });
+      }
+
+      // Step 1 → 2
+      document.getElementById('ob-next-1').onclick = async () => {
+        showStep(2);
+        // Lazy-load categories
+        if (!document.getElementById('ob-cats').children.length) {
+          try {
+            const r = await fetch('/api/categories');
+            const j = await r.json();
+            const cats = j.items || [];
+            const container = document.getElementById('ob-cats');
+            container.innerHTML = cats.map(c => `<span class="ob-cat-pill" data-id="${c.id}">${c.name}</span>`).join('');
+            container.querySelectorAll('.ob-cat-pill').forEach(pill => {
+              pill.onclick = () => {
+                const id = pill.dataset.id;
+                if (picks.has(id)) {
+                  picks.delete(id);
+                  pill.classList.remove('selected');
+                } else if (picks.size < 3) {
+                  picks.add(id);
+                  pill.classList.add('selected');
+                }
+                document.getElementById('ob-counter').textContent = picks.size === 0
+                  ? 'Pick at least 1, max 3'
+                  : `Selected ${picks.size} / 3`;
+                document.getElementById('ob-next-2').disabled = picks.size === 0;
+              };
+            });
+            document.getElementById('ob-search').oninput = (ev) => {
+              const q = ev.target.value.toLowerCase();
+              container.querySelectorAll('.ob-cat-pill').forEach(p => {
+                p.style.display = p.textContent.toLowerCase().includes(q) ? '' : 'none';
+              });
+            };
+          } catch (e) {
+            document.getElementById('ob-cats').innerHTML = '<span style="color:var(--bad)">Failed to load categories. Skip and pick later.</span>';
+          }
+        }
+      };
+
+      // Step 2 → 3
+      document.getElementById('ob-next-2').onclick = () => showStep(3);
+
+      // Skip
+      document.getElementById('ob-skip').onclick = async () => {
+        await submitOnboarding([], '');
+      };
+
+      // Step 3 back
+      document.getElementById('ob-back').onclick = () => showStep(2);
+
+      // Goal selection
+      overlay.querySelectorAll('.ob-goal').forEach(g => {
+        g.onclick = () => {
+          overlay.querySelectorAll('.ob-goal').forEach(x => x.classList.remove('selected'));
+          g.classList.add('selected');
+          goal = g.dataset.goal;
+          document.getElementById('ob-finish').disabled = false;
+        };
+      });
+
+      // Finish
+      document.getElementById('ob-finish').onclick = async () => {
+        await submitOnboarding([...picks], goal || '');
+      };
+
+      async function submitOnboarding(categories, goal) {
+        const btn = document.getElementById('ob-finish');
+        if (btn) btn.disabled = true;
+        try {
+          const r = await fetch('/api/onboarding/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categories, goal }),
+          });
+          if (!r.ok) throw new Error('save failed');
+          overlay.style.display = 'none';
+          // Land on Niches view, picking first selected category if any
+          if (categories.length) {
+            try { localStorage.setItem('niche.categoryId', categories[0]); } catch {}
+          }
+          if (hasNiches) {
+            currentView = 'niches';
+            setView('niches');
+            emitNotification('success', `Welcome aboard! ${categories.length ? 'Showing ' + (categories[0] || 'your category') + ' niches.' : 'Pick a category from the dropdown to begin.'}`);
+          }
+        } catch (e) {
+          alert('Could not save: ' + e.message + '. Refresh and try again.');
+          if (btn) btn.disabled = false;
+        }
+      }
+    }
+
+    // ---- Load feature usage for gating UI ----
+    async function loadUsage() {
+      try {
+        const r = await fetch('/api/me/usage');
+        if (r.ok) {
+          const j = await r.json();
+          userUsage = j.usage || {};
+        }
+      } catch {}
+    }
+    loadUsage();
     document.querySelectorAll('.tab').forEach(t => {
       if (t.dataset.view === 'apps' && !hasDiscovered) { t.style.display = 'none'; return; }
       if (t.dataset.view === 'reviews' && !tables.length) { t.style.display = 'none'; return; }

@@ -69,6 +69,18 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   created_at  TEXT NOT NULL,
   next_url    TEXT
 );
+
+-- Lifetime feature samples for "generous taster" Free-tier enforcement.
+-- Composite PK (user_id, feature, context) lets the same target be retried without double-counting,
+-- while still enforcing 1-distinct-target per lifetime per feature.
+CREATE TABLE IF NOT EXISTS feature_usage (
+  user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  feature   TEXT NOT NULL,
+  used_at   TEXT NOT NULL,
+  context   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (user_id, feature, context)
+);
+CREATE INDEX IF NOT EXISTS idx_feature_usage_user ON feature_usage(user_id, feature);
 """
 
 
@@ -84,6 +96,14 @@ def init_schema() -> None:
     conn = _conn()
     try:
         conn.executescript(DDL)
+        # Defensive ALTERs for pre-existing DBs that don't have onboarding columns yet.
+        existing_cols = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "onboarded" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN onboarded INTEGER NOT NULL DEFAULT 0")
+        if "picked_categories" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN picked_categories TEXT")
+        if "picked_goal" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN picked_goal TEXT")
         conn.commit()
     finally:
         conn.close()
@@ -235,7 +255,8 @@ def get_user_by_session(token: str) -> dict | None:
     conn = _conn()
     try:
         row = conn.execute(
-            """SELECT u.id, u.email, u.name, u.picture, u.plan, u.is_admin, s.expires_at
+            """SELECT u.id, u.email, u.name, u.picture, u.plan, u.is_admin,
+                      u.onboarded, u.picked_categories, u.picked_goal, s.expires_at
                FROM sessions s JOIN users u ON u.id = s.user_id
                WHERE s.token = ?""",
             (token,),
@@ -243,7 +264,7 @@ def get_user_by_session(token: str) -> dict | None:
         if not row:
             return None
         try:
-            if datetime.fromisoformat(row[6]) < datetime.now(timezone.utc):
+            if datetime.fromisoformat(row[9]) < datetime.now(timezone.utc):
                 conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
                 conn.commit()
                 return None
@@ -254,9 +275,69 @@ def get_user_by_session(token: str) -> dict | None:
         return {
             "id": row[0], "email": row[1], "name": row[2], "picture": row[3],
             "plan": row[4], "is_admin": bool(row[5]),
+            "onboarded": bool(row[6]),
+            "picked_categories": row[7] or "",
+            "picked_goal": row[8] or "",
         }
     finally:
         conn.close()
+
+
+# ---- Feature gating (Free-tier "generous taster") ----
+
+# Each feature: 1 distinct context per lifetime on Free. Paid tiers: unlimited (for now;
+# monthly quotas will layer on top later).
+PAID_PLANS = {"solo", "pro", "studio"}
+
+
+def can_use_feature(user_id: int, feature: str, plan: str, context: str = "") -> tuple[bool, dict]:
+    """Returns (allowed, details). Free plan caps at 1 distinct context per feature, lifetime."""
+    if plan in PAID_PLANS:
+        return True, {}
+    conn = _conn()
+    try:
+        # Already used this exact target? Allow (idempotent retry).
+        same = conn.execute(
+            "SELECT 1 FROM feature_usage WHERE user_id=? AND feature=? AND context=?",
+            (user_id, feature, context or ""),
+        ).fetchone()
+        if same:
+            return True, {"reason": "already_used_same_context"}
+        # Distinct count
+        n = conn.execute(
+            "SELECT COUNT(*) FROM feature_usage WHERE user_id=? AND feature=?",
+            (user_id, feature),
+        ).fetchone()[0]
+    finally:
+        conn.close()
+    if n >= 1:
+        return False, {"reason": "free_tier_used", "feature": feature, "samples_used": n}
+    return True, {}
+
+
+def record_feature_use(user_id: int, feature: str, context: str = "") -> None:
+    conn = _conn()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO feature_usage (user_id, feature, used_at, context) VALUES (?, ?, ?, ?)",
+            (user_id, feature, now_iso(), context or ""),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_feature_usage_summary(user_id: int) -> dict:
+    """Returns per-feature counts for the dashboard's gating UI."""
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            "SELECT feature, COUNT(*) FROM feature_usage WHERE user_id=? GROUP BY feature",
+            (user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {feature: count for feature, count in rows}
 
 
 def destroy_session(token: str) -> None:
