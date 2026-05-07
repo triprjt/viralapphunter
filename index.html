@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Play Store Reviews Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel-2: #1f242d;
+      --border: #2a313d;
+      --text: #e6e8ee;
+      --muted: #8a93a6;
+      --accent: #6ea8ff;
+      --star: #f2c14e;
+      --bad: #ff7a7a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header .meta { color: var(--muted); font-size: 12px; }
+    main { padding: 16px 24px 80px; max-width: 1400px; margin: 0 auto; }
+    .filters-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+    .filters-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+    .filters-wrap.collapsed .filters-bar { border-bottom: none; }
+    .filters-bar button { background: none; border: none; color: var(--muted); font: inherit; cursor: pointer; padding: 4px 8px; }
+    .filters-bar button:hover { color: var(--text); }
+    .filters-wrap.collapsed .filters { display: none; }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 14px; }
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; max-height: calc(100vh - 220px); }
+    .table-scroll table { border: none; border-radius: 0; min-width: 1200px; }
+    .table-scroll thead th { position: sticky; top: 0; z-index: 2; }
+    .filters label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .filters select, .filters input { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none; }
+    .filters select:focus, .filters input:focus { border-color: var(--accent); }
+    .ratings { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill { user-select: none; cursor: pointer; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); font-size: 12px; }
+    .pill.active { background: var(--accent); color: #0f1115; border-color: var(--accent); font-weight: 600; }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; color: var(--muted); font-size: 12px; }
+    .stats b { color: var(--text); font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+    th { background: var(--panel-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none; }
+    th:hover { color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    td.rating { white-space: nowrap; color: var(--star); font-weight: 600; }
+    td.rating.low { color: var(--bad); }
+    td.text { max-width: 600px; }
+    td.text .reply { margin-top: 8px; padding: 8px 10px; background: var(--panel-2); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 12px; color: var(--muted); }
+    td.text .reply b { color: var(--text); }
+    .pkg { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+    .empty { padding: 40px; text-align: center; color: var(--muted); }
+    .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 12px; }
+    .pager button { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+    .pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .loading { padding: 60px; text-align: center; color: var(--muted); }
+    .tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 5; }
+    .tab { padding: 10px 18px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-size: 13px; user-select: none; }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+    .app-cell { display: flex; gap: 10px; align-items: flex-start; min-width: 240px; }
+    .app-cell img { width: 40px; height: 40px; min-width: 40px; min-height: 40px; max-width: 40px; max-height: 40px; border-radius: 8px; flex-shrink: 0; background: var(--panel-2); object-fit: cover; }
+    .app-cell .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .app-cell .meta b { font-size: 13px; }
+    .app-cell .meta span { font-size: 11px; color: var(--muted); }
+    .terms { display: flex; flex-wrap: wrap; gap: 4px; max-width: 280px; }
+    .term { background: var(--panel-2); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--muted); }
+    a.app-link { color: var(--accent); text-decoration: none; font-size: 12px; }
+    a.app-link:hover { text-decoration: underline; }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; padding: 10px 0 14px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .breadcrumb button.crumb { background: none; border: none; color: var(--accent); padding: 4px 6px; font: inherit; cursor: pointer; border-radius: 4px; }
+    .breadcrumb button.crumb:hover { background: var(--panel-2); }
+    .breadcrumb button.crumb.current { color: var(--text); cursor: default; }
+    .breadcrumb button.crumb.current:hover { background: none; }
+    .breadcrumb .sep { color: var(--border); user-select: none; }
+    .breadcrumb button.back { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 6px; font: inherit; cursor: pointer; margin-right: 8px; }
+    .breadcrumb button.back:hover { border-color: var(--accent); }
+    .breadcrumb button.back:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.dev-link { background: none; border: none; color: var(--accent); padding: 0; font: inherit; cursor: pointer; text-align: left; }
+    button.dev-link:hover { text-decoration: underline; }
+    .dev-chip { background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+    .dev-chip a { color: var(--muted); margin-left: 6px; text-decoration: none; }
+    .dev-chip a:hover { color: var(--bad); }
+    button.fetch-btn { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+    button.fetch-btn:hover { border-color: var(--accent); }
+    button.fetch-btn.fetching { color: var(--muted); cursor: wait; border-style: dashed; }
+    button.fetch-btn.done { background: var(--accent); color: #0f1115; border-color: var(--accent); font-weight: 600; }
+    button.fetch-btn.error { color: var(--bad); border-color: var(--bad); }
+    button.fetch-btn.queued { color: var(--muted); border-style: dashed; }
+    /* notifications */
+    .notif-bell { position: relative; cursor: pointer; padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 13px; user-select: none; color: var(--muted); }
+    .notif-bell:hover { color: var(--text); border-color: var(--accent); }
+    .notif-badge { position: absolute; top: -6px; right: -6px; background: var(--bad); color: white; border-radius: 999px; font-size: 10px; font-weight: 700; padding: 2px 6px; min-width: 18px; text-align: center; }
+    .notif-badge.empty { display: none; }
+    .notif-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 380px; max-height: 60vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.6); display: none; }
+    .notif-panel.open { display: block; }
+    .notif-panel-header { padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+    .notif-panel-header a { color: var(--accent); text-decoration: none; cursor: pointer; }
+    .notif { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+    .notif:last-child { border-bottom: none; }
+    .notif.clickable { cursor: pointer; }
+    .notif.clickable:hover { background: var(--panel-2); }
+    .notif-action { font-size: 11px; color: var(--accent); margin-top: 4px; }
+    .notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .notif.success .notif-dot { background: #4ade80; }
+    .notif.error .notif-dot { background: var(--bad); }
+    .notif.warn .notif-dot { background: var(--star); }
+    .notif.info .notif-dot { background: var(--accent); }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-text { word-break: break-word; }
+    .notif-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .notif-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+    .notif-toast { position: fixed; bottom: 24px; right: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 1001; font-size: 13px; max-width: 360px; display: flex; gap: 10px; align-items: flex-start; animation: slidein 0.2s; }
+    .notif-toast.success { border-left: 3px solid #4ade80; }
+    .notif-toast.error { border-left: 3px solid var(--bad); }
+    .notif-toast.warn { border-left: 3px solid var(--star); }
+    @keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    /* discovery progress widget */
+    .disco-pill { display: flex; align-items: center; gap: 8px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+    .disco-pill:hover { color: var(--text); border-color: var(--accent); }
+    .disco-pill.running { color: var(--text); border-color: var(--accent); }
+    .disco-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .disco-pill.running .dot { background: #4ade80; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); animation: pulse 1.5s infinite; }
+    .disco-pill.done .dot { background: #4ade80; }
+    .disco-pill.stalled .dot { background: var(--bad); }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
+      70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+    .disco-bar { width: 80px; height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden; }
+    .disco-bar > div { height: 100%; background: var(--accent); transition: width 0.3s; }
+    .disco-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 460px; max-height: 70vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.6); display: none; }
+    .disco-panel.open { display: block; }
+    .disco-panel h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+    .disco-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; font-size: 12px; }
+    .disco-grid > div { background: var(--panel-2); padding: 8px 10px; border-radius: 6px; }
+    .disco-grid b { display: block; font-size: 18px; color: var(--text); }
+    .disco-grid span { color: var(--muted); }
+    .disco-cats { font-size: 12px; color: var(--muted); }
+    .disco-cats table { width: 100%; }
+    .disco-cats td { padding: 3px 6px; border-bottom: 1px solid var(--border); }
+    .disco-cats td:nth-child(2) { text-align: right; color: var(--text); }
+    .disco-eta { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; margin-right: 4px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Google Play Reviews</h1>
+    <div style="display:flex;align-items:center;gap:16px;position:relative">
+      <div class="meta" id="dbmeta">loading…</div>
+      <div id="disco-pill" class="disco-pill" style="display:none" title="Background discovery progress">
+        <span class="dot"></span>
+        <span id="disco-label">—</span>
+        <div class="disco-bar"><div id="disco-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div id="disco-panel" class="disco-panel"></div>
+      <div id="notif-bell" class="notif-bell" title="Notifications">
+        🔔 <span id="notif-badge" class="notif-badge empty">0</span>
+      </div>
+      <div id="notif-panel" class="notif-panel">
+        <div class="notif-panel-header">
+          <span id="notif-panel-title">Notifications</span>
+          <a id="notif-clear">Clear all</a>
+        </div>
+        <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
+      </div>
+    </div>
+  </header>
+  <div class="tabs" id="tabs" style="display:none">
+    <div class="tab active" data-view="reviews">Reviews</div>
+    <div class="tab" data-view="ranking">Viral Ranking</div>
+    <div class="tab" data-view="niches">Niches</div>
+    <div class="tab" data-view="admin" data-admin-only="1" style="display:none">Admin</div>
+  </div>
+  <main>
+    <div id="breadcrumb" class="breadcrumb" style="display:none"></div>
+    <div id="content" class="loading">Loading sql.js and reviews.db…</div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script>
+  (async () => {
+    const content = document.getElementById('content');
+    const dbmeta = document.getElementById('dbmeta');
+
+    let SQL, db;
+    try {
+      SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+      const buf = await fetch('reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => {
+        if (!r.ok) throw new Error('reviews.db fetch failed: ' + r.status);
+        return r.arrayBuffer();
+      });
+      db = new SQL.Database(new Uint8Array(buf));
+    } catch (e) {
+      content.innerHTML = `<div class="empty">Failed to load DB: ${e.message}<br><br>Run <code>python3 -m http.server 8000</code> in this folder and open <code>http://localhost:8000</code>.</div>`;
+      return;
+    }
+
+    // discover review tables (anything with the reviews schema)
+    const tablesRows = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews%' ORDER BY name");
+    const tables = tablesRows.length ? tablesRows[0].values.map(r => r[0]) : [];
+    const hasDiscovered = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='discovered_apps'").length > 0;
+    const hasRanking = db.exec("SELECT name FROM sqlite_master WHERE type='view' AND name='apps_ranked'").length > 0;
+    const hasNiches = db.exec("SELECT name FROM sqlite_master WHERE type='view' AND name='niche_saturation'").length > 0;
+    if (!tables.length && !hasDiscovered) { content.innerHTML = '<div class="empty">No reviews or discovered_apps tables found.</div>'; return; }
+    document.getElementById('tabs').style.display = 'flex';
+
+    const state = {
+      table: tables.includes('reviews') ? 'reviews' : tables[0],
+      pkg: 'all',
+      ratings: new Set([1,2,3,4,5]),
+      search: '',
+      sort: 'posted_at',
+      dir: 'desc',
+      page: 0,
+      pageSize: 50,
+    };
+
+    content.classList.remove('loading');
+    const $ = id => document.getElementById(id);
+
+    function refreshPkgOptions() {
+      const r = safeExec(`SELECT DISTINCT package_name FROM ${state.table} ORDER BY package_name`);
+      const pkgs = r.length ? r[0].values.map(v => v[0]) : [];
+      $('f-pkg').innerHTML = `<option value="all">All apps</option>` + pkgs.map(p => `<option ${p===state.pkg?'selected':''}>${p}</option>`).join('');
+    }
+
+    function buildWhere() {
+      const clauses = [];
+      const params = {};
+      if (state.pkg !== 'all') { clauses.push('package_name = $pkg'); params.$pkg = state.pkg; }
+      if (state.ratings.size && state.ratings.size < 5) {
+        const ratingList = [...state.ratings].join(',');
+        clauses.push(`rating IN (${ratingList})`);
+      }
+      if (state.search.trim()) {
+        clauses.push(`(text LIKE $q OR user_name LIKE $q)`);
+        params.$q = `%${state.search.trim()}%`;
+      }
+      return { where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', params };
+    }
+
+    function render() {
+      const { where, params } = buildWhere();
+      const countRow = safeExec(`SELECT COUNT(*) FROM ${state.table} ${where}`, params);
+      const total = countRow[0].values[0][0];
+      const pages = Math.max(1, Math.ceil(total / state.pageSize));
+      if (state.page >= pages) state.page = pages - 1;
+      const offset = state.page * state.pageSize;
+
+      const sortCol = ['posted_at','rating','thumbs_up','user_name','package_name'].includes(state.sort) ? state.sort : 'posted_at';
+      const sql = `SELECT review_id, package_name, user_name, rating, text, posted_at, thumbs_up, reply_text, reply_at, app_version
+                   FROM ${state.table} ${where}
+                   ORDER BY ${sortCol} ${state.dir.toUpperCase()}
+                   LIMIT ${state.pageSize} OFFSET ${offset}`;
+      const res = safeExec(sql, params);
+      const rows = res.length ? res[0].values : [];
+
+      // stats
+      const aggRow = safeExec(`SELECT AVG(rating), MIN(posted_at), MAX(posted_at) FROM ${state.table} ${where}`, params);
+      const [avg, minD, maxD] = aggRow[0].values[0];
+      $('stats').innerHTML = `
+        <span><b>${total.toLocaleString()}</b> reviews</span>
+        <span>avg <b>${avg ? avg.toFixed(2) : '–'}</b> ★</span>
+        <span>${minD ? minD.slice(0,10) : ''} → ${maxD ? maxD.slice(0,10) : ''}</span>
+      `;
+
+      // table
+      if (!rows.length) {
+        $('table-wrap').innerHTML = `<div class="empty">No reviews match these filters.</div>`;
+      } else {
+        const arrow = c => state.sort === c ? (state.dir === 'asc' ? ' ▲' : ' ▼') : '';
+        $('table-wrap').innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="rating">Rating${arrow('rating')}</th>
+                <th data-sort="posted_at">Posted${arrow('posted_at')}</th>
+                <th data-sort="user_name">User${arrow('user_name')}</th>
+                <th data-sort="package_name">App${arrow('package_name')}</th>
+                <th>Review</th>
+                <th data-sort="thumbs_up">👍${arrow('thumbs_up')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => {
+                const [, pkg, user, rating, text, posted, thumbs, reply, replyAt, ver] = r;
+                const dateStr = posted ? posted.replace('T',' ').slice(0,16) : '';
+                const replyHtml = reply ? `<div class="reply"><b>Developer reply${replyAt?' · '+replyAt.slice(0,10):''}:</b> ${escapeHtml(reply)}</div>` : '';
+                const ratingClass = rating <= 2 ? 'rating low' : 'rating';
+                return `<tr>
+                  <td class="${ratingClass}">${'★'.repeat(rating||0)}${'☆'.repeat(5-(rating||0))}</td>
+                  <td>${dateStr}${ver?`<br><span class="pkg">v${escapeHtml(ver)}</span>`:''}</td>
+                  <td>${escapeHtml(user||'')}</td>
+                  <td><span class="pkg">${escapeHtml(pkg)}</span></td>
+                  <td class="text">${escapeHtml(text||'')}${replyHtml}</td>
+                  <td>${thumbs||0}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        $('table-wrap').querySelectorAll('th[data-sort]').forEach(th => {
+          th.onclick = () => {
+            const c = th.dataset.sort;
+            if (state.sort === c) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+            else { state.sort = c; state.dir = 'desc'; }
+            render();
+          };
+        });
+      }
+
+      $('pageinfo').textContent = `Page ${state.page+1} / ${pages}`;
+      $('prev').disabled = state.page === 0;
+      $('next').disabled = state.page >= pages - 1;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function safeExec(sql, params) {
+      try { return db.exec(sql, params); }
+      catch (e) {
+        console.error('SQL error:', e, sql, params);
+        const msg = `<div class="empty" style="color:var(--bad);text-align:left;white-space:pre-wrap">SQL error: ${escapeHtml(e.message)}\n\n${escapeHtml(sql.slice(0,800))}</div>`;
+        if (content) content.insertAdjacentHTML('afterbegin', msg);
+        throw e;
+      }
+    }
+
+    // Per-app review fetch status (populated from /api/status, polled while any are 'fetching').
+    const fetchStatus = new Map(); // pkg -> {state, count, table_name, error}
+    const lastSeenStatus = new Map(); // pkg -> last state we observed (to detect transitions)
+    let pollTimer = null;
+    let firstStatusLoad = true;
+
+    // ---- Notifications ----
+    const notifications = [];   // [{id, type, text, time, pkg?}]
+    const NOTIF_LIMIT = 100;
+
+    function emitNotification(type, text, opts) {
+      const n = { id: Date.now() + Math.random(), type, text, time: new Date(), ...(opts||{}) };
+      notifications.unshift(n);
+      if (notifications.length > NOTIF_LIMIT) notifications.length = NOTIF_LIMIT;
+      showToast(n);
+      renderNotifBell();
+    }
+
+    function renderNotifBell() {
+      const badge = document.getElementById('notif-badge');
+      if (!badge) return;
+      const count = notifications.length;
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.classList.toggle('empty', count === 0);
+    }
+
+    function notifActionLabel(n) {
+      if (!n.pkg) return null;
+      if (n.type === 'success' || n.type === 'warn') return 'View reviews →';
+      if (n.type === 'error') return 'Retry fetch →';
+      if (n.type === 'info') return null;
+      return null;
+    }
+
+    async function handleNotifClick(n) {
+      if (!n.pkg) return;
+      // close the panel
+      document.getElementById('notif-panel').classList.remove('open');
+      if (n.type === 'success' || n.type === 'warn') {
+        // Use the existing reviews handoff
+        const s = fetchStatus.get(n.pkg) || { state: 'done', count: 0, table_name: 'reviews_in', package_name: n.pkg };
+        const target = s.table_name || (tables.includes('reviews_in') ? 'reviews_in' : tables[0]);
+        await reloadDb();
+        if (!tables.includes(target)) {
+          alert(`No reviews table "${target}" found.`);
+          return;
+        }
+        pushHistory(currentLabel());
+        state.table = target;
+        state.pkg = n.pkg;
+        state.page = 0;
+        state.search = '';
+        state.ratings = new Set([1,2,3,4,5]);
+        setView('reviews');
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      } else if (n.type === 'error') {
+        // Re-enqueue the fetch
+        await startFetch(n.pkg);
+      }
+    }
+
+    function renderNotifPanel() {
+      const list = document.getElementById('notif-list');
+      if (!list) return;
+      if (!notifications.length) {
+        list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+        return;
+      }
+      list.innerHTML = notifications.map((n, i) => {
+        const ago = relativeTime(n.time);
+        const action = notifActionLabel(n);
+        const cls = action ? 'notif clickable ' + escapeHtml(n.type) : 'notif ' + escapeHtml(n.type);
+        return `<div class="${cls}" data-idx="${i}">
+          <span class="notif-dot"></span>
+          <div class="notif-body">
+            <div class="notif-text">${escapeHtml(n.text)}</div>
+            <div class="notif-time">${ago}</div>
+            ${action ? `<div class="notif-action">${escapeHtml(action)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      list.querySelectorAll('.notif.clickable').forEach(el => {
+        el.onclick = () => {
+          const idx = parseInt(el.dataset.idx, 10);
+          handleNotifClick(notifications[idx]);
+        };
+      });
+    }
+
+    function relativeTime(d) {
+      const s = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (s < 5) return 'just now';
+      if (s < 60) return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s/60)}m ago`;
+      if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+      return d.toLocaleString();
+    }
+
+    function showToast(n) {
+      const el = document.createElement('div');
+      el.className = 'notif-toast ' + n.type;
+      el.innerHTML = `<span class="notif-dot"></span><div>${escapeHtml(n.text)}</div>`;
+      document.body.appendChild(el);
+      setTimeout(() => { el.style.transition = 'opacity 0.3s'; el.style.opacity = '0'; }, 4500);
+      setTimeout(() => el.remove(), 5000);
+    }
+
+    function detectFetchTransitions(items) {
+      for (const it of items) {
+        const prevState = lastSeenStatus.get(it.package_name);
+        const curState = it.state;
+        // Don't fire on the first poll (that's just hydration)
+        if (firstStatusLoad) continue;
+        if (prevState && prevState !== curState) {
+          if (curState === 'done') {
+            if ((it.count || 0) > 0) {
+              emitNotification('success', `✓ Fetched ${it.count.toLocaleString()} reviews for ${it.package_name}`, { pkg: it.package_name });
+            } else {
+              emitNotification('warn', `⚠ 0 reviews returned for ${it.package_name} (app may have no public reviews in the configured locale)`, { pkg: it.package_name });
+            }
+          } else if (curState === 'error') {
+            emitNotification('error', `✗ Fetch failed for ${it.package_name}: ${it.error || 'unknown error'}`, { pkg: it.package_name });
+          } else if (curState === 'fetching' && prevState === 'queued') {
+            // silent — just transitioning out of queue
+          }
+        }
+      }
+    }
+
+    async function refreshStatus() {
+      try {
+        const r = await fetch('/api/status', { cache: 'no-store' });
+        const j = await r.json();
+        const items = j.items || [];
+        detectFetchTransitions(items);
+        // update maps
+        fetchStatus.clear();
+        for (const it of items) {
+          fetchStatus.set(it.package_name, it);
+          lastSeenStatus.set(it.package_name, it.state);
+        }
+        firstStatusLoad = false;
+        // re-render any visible status buttons
+        document.querySelectorAll('button.fetch-btn[data-pkg]').forEach(btn => {
+          updateFetchButton(btn, btn.dataset.pkg);
+        });
+        const anyActive = items.some(i => i.state === 'queued' || i.state === 'fetching') || (j.queue_size || 0) > 0;
+        if (anyActive && !pollTimer) {
+          pollTimer = setInterval(refreshStatus, 2500);
+        } else if (!anyActive && pollTimer) {
+          clearInterval(pollTimer); pollTimer = null;
+        }
+      } catch (e) { /* server may be down */ }
+    }
+
+    async function startFetch(pkg) {
+      try {
+        const r = await fetch('/api/fetch?pkg=' + encodeURIComponent(pkg), { method: 'POST' });
+        const j = await r.json();
+        const newState = j.state || 'queued';
+        fetchStatus.set(pkg, { state: newState, count: 0, package_name: pkg });
+        lastSeenStatus.set(pkg, newState);
+        if (!j.already_running) {
+          emitNotification('info', `⏳ Queued reviews fetch for ${pkg}${j.queue_size>0?` (queue: ${j.queue_size})`:''}`, { pkg });
+        }
+        document.querySelectorAll(`button.fetch-btn[data-pkg="${pkg}"]`).forEach(b => updateFetchButton(b, pkg));
+        if (!pollTimer) pollTimer = setInterval(refreshStatus, 2500);
+      } catch (e) {
+        emitNotification('error', `Failed to enqueue fetch for ${pkg}: ${e.message}`);
+      }
+    }
+
+    function updateFetchButton(btn, pkg) {
+      const s = fetchStatus.get(pkg);
+      btn.className = 'fetch-btn';
+      if (!s || s.state === 'idle') {
+        btn.textContent = '⬇ Fetch';
+        btn.title = 'Fetch all reviews for this app';
+      } else if (s.state === 'queued') {
+        btn.classList.add('queued');
+        btn.textContent = '⋯ Queued';
+        btn.title = 'Waiting in queue';
+      } else if (s.state === 'fetching') {
+        btn.classList.add('fetching');
+        btn.innerHTML = '<span class="spinner"></span>Fetching…';
+        btn.title = 'Scraping reviews from Play Store';
+      } else if (s.state === 'done') {
+        btn.classList.add('done');
+        btn.textContent = `View ${s.count.toLocaleString()} →`;
+        btn.title = `Open ${s.count} reviews in Reviews tab`;
+      } else if (s.state === 'error') {
+        btn.classList.add('error');
+        btn.textContent = '⚠ Retry';
+        btn.title = 'Error: ' + (s.error || 'unknown');
+      }
+    }
+
+        async function reloadDb() {
+      const buf = await fetch('reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => r.arrayBuffer());
+      try { db.close(); } catch (e) {}
+      db = new SQL.Database(new Uint8Array(buf));
+      // refresh known tables list (in case a new reviews_* table appeared)
+      const t = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews%' ORDER BY name");
+      tables.length = 0;
+      if (t.length) for (const [n] of t[0].values) tables.push(n);
+    }
+
+    function showOverlay(message) {
+      let el = document.getElementById('global-overlay');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'global-overlay';
+        el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+        document.body.appendChild(el);
+      }
+      el.innerHTML = `<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:24px 32px;display:flex;align-items:center;gap:12px"><span class="spinner" style="width:16px;height:16px;border-width:3px"></span><span>${escapeHtml(message)}</span></div>`;
+      el.style.display = 'flex';
+    }
+    function hideOverlay() {
+      const el = document.getElementById('global-overlay');
+      if (el) el.style.display = 'none';
+    }
+
+    async function fetchDeveloperApps(devId, devName) {
+      showOverlay(`Searching Google Play for apps by ${devName}…`);
+      try {
+        const url = `/api/developer?devId=${encodeURIComponent(devId)}&name=${encodeURIComponent(devName||'')}`;
+        const r = await fetch(url, { method: 'POST' });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'unknown error');
+        showOverlay(`Found ${j.found} apps. Loading…`);
+        await reloadDb();
+        return j;
+      } finally {
+        hideOverlay();
+      }
+    }
+
+    async function handleFetchClick(pkg) {
+      const s = fetchStatus.get(pkg);
+      if (s && s.state === 'done') {
+        const target = s.table_name || (tables.includes('reviews_in') ? 'reviews_in' : tables[0]);
+        await reloadDb();
+        if (!tables.includes(target)) {
+          alert(`No reviews table "${target}" found in DB after reload. Server may have failed.`);
+          return;
+        }
+        pushHistory(currentLabel());
+        state.table = target;
+        state.pkg = pkg;
+        state.page = 0;
+        state.search = '';
+        state.ratings = new Set([1,2,3,4,5]);
+        setView('reviews');
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        return;
+      }
+      if (s && s.state === 'fetching') return;
+      startFetch(pkg);
+    }
+
+    function computeViralScore(row, floor) {
+      const mi = row.min_installs;
+      const ipm = row.installs_per_month;
+      const f = floor != null ? floor : 1000;
+      if (!(mi >= f) || ipm == null) return null;
+      const log10b = v =>
+        v >= 1e7 ? 7 : v >= 1e6 ? 6 : v >= 1e5 ? 5 : v >= 1e4 ? 4 :
+        v >= 1e3 ? 3 : v >= 1e2 ? 2 : 1;
+      const reachB = mi >= 1e9 ? 9 : mi >= 1e8 ? 8 : mi >= 1e7 ? 7 :
+                     mi >= 1e6 ? 6 : mi >= 1e5 ? 5 : 4;
+      const h1 = row.histogram_1||0, h2 = row.histogram_2||0, h3 = row.histogram_3||0;
+      const h4 = row.histogram_4||0, h5 = row.histogram_5||0;
+      const total = h1+h2+h3+h4+h5;
+      const polar = total > 0 ? (h1+h2)/total : 0;
+      const stale = Math.max(0, (row.days_since_update||0) - 180) / 365;
+      return 3*log10b(ipm) + 2*((row.score||0)-3) + 0.5*reachB - 3*polar - stale;
+    }
+
+    function installsToInt(s) {
+      if (!s) return 0;
+      return parseInt(String(s).replace(/[,+]/g, ''), 10) || 0;
+    }
+
+    const appsState = {
+      term: 'all',
+      free: 'all',
+      minScore: 0,
+      minInstalls: 0,
+      search: '',
+      multiOnly: false,
+      sort: 'installs',
+      dir: 'desc',
+      page: 0,
+      pageSize: 50,
+    };
+
+    const INSTALL_TIERS = [
+      [0, 'Any'],
+      [1000, '1K+'],
+      [10000, '10K+'],
+      [100000, '100K+'],
+      [1000000, '1M+'],
+      [10000000, '10M+'],
+      [100000000, '100M+'],
+      [1000000000, '1B+'],
+    ];
+
+    function renderAppsView() {
+      content.innerHTML = `
+        <div class="filters">
+          <label>Matched term
+            <select id="a-term"><option value="all">Any term</option></select>
+          </label>
+          <label>Free / Paid
+            <select id="a-free">
+              <option value="all">All</option>
+              <option value="1">Free only</option>
+              <option value="0">Paid only</option>
+            </select>
+          </label>
+          <label>Min rating
+            <select id="a-score">
+              <option value="0">Any</option>
+              <option value="3">3.0+</option>
+              <option value="3.5">3.5+</option>
+              <option value="4">4.0+</option>
+              <option value="4.5">4.5+</option>
+            </select>
+          </label>
+          <label>Min installs
+            <select id="a-installs">
+              ${INSTALL_TIERS.map(([n,l]) => `<option value="${n}" ${appsState.minInstalls===n?'selected':''}>${l}</option>`).join('')}
+            </select>
+          </label>
+          <label>Search
+            <input id="a-search" type="search" placeholder="title / developer / package…" />
+          </label>
+          <label>&nbsp;
+            <span class="ratings"><span id="a-multi" class="pill">Matched ≥2 keywords</span></span>
+          </label>
+          <label>Page size
+            <select id="a-page"><option>25</option><option selected>50</option><option>100</option><option>250</option></select>
+          </label>
+        </div>
+        <div class="stats" id="a-stats"></div>
+        <div id="a-table-wrap"></div>
+        <div class="pager">
+          <button id="a-prev">← Prev</button>
+          <span id="a-pageinfo" class="meta"></span>
+          <button id="a-next">Next →</button>
+        </div>
+      `;
+
+      // populate term dropdown
+      const termsRow = safeExec("SELECT matched_terms FROM discovered_apps");
+      const termCounts = new Map();
+      if (termsRow.length) {
+        for (const [tcsv] of termsRow[0].values) {
+          if (!tcsv) continue;
+          for (const t of String(tcsv).split(',')) {
+            termCounts.set(t, (termCounts.get(t) || 0) + 1);
+          }
+        }
+      }
+      const sortedTerms = [...termCounts.entries()].sort((a,b) => b[1] - a[1]);
+      $('a-term').innerHTML = `<option value="all">Any term</option>` + sortedTerms.map(([t,c]) => `<option ${t===appsState.term?'selected':''}>${t} (${c})</option>`).join('');
+      // strip count when reading value
+      $('a-term').onchange = e => {
+        const v = e.target.value;
+        appsState.term = v === 'all' ? 'all' : v.replace(/ \(\d+\)$/, '');
+        appsState.page = 0; renderAppsTable();
+      };
+
+      $('a-free').onchange = e => { appsState.free = e.target.value; appsState.page = 0; renderAppsTable(); };
+      $('a-score').onchange = e => { appsState.minScore = parseFloat(e.target.value); appsState.page = 0; renderAppsTable(); };
+      $('a-installs').onchange = e => { appsState.minInstalls = parseInt(e.target.value, 10); appsState.page = 0; renderAppsTable(); };
+      $('a-search').oninput = e => { appsState.search = e.target.value; appsState.page = 0; renderAppsTable(); };
+      $('a-page').onchange = e => { appsState.pageSize = +e.target.value; appsState.page = 0; renderAppsTable(); };
+      $('a-multi').onclick = () => {
+        appsState.multiOnly = !appsState.multiOnly;
+        $('a-multi').classList.toggle('active', appsState.multiOnly);
+        appsState.page = 0; renderAppsTable();
+      };
+      if (appsState.multiOnly) $('a-multi').classList.add('active');
+      $('a-prev').onclick = () => { appsState.page--; renderAppsTable(); window.scrollTo(0,0); };
+      $('a-next').onclick = () => { appsState.page++; renderAppsTable(); window.scrollTo(0,0); };
+
+      renderAppsTable();
+    }
+
+    function buildAppsWhere() {
+      const clauses = [];
+      const params = {};
+      if (appsState.term !== 'all') {
+        clauses.push(`(',' || matched_terms || ',') LIKE $term`);
+        params.$term = `%,${appsState.term},%`;
+      }
+      if (appsState.free !== 'all') {
+        clauses.push('free = $free'); params.$free = parseInt(appsState.free, 10);
+      }
+      if (appsState.minScore > 0) {
+        clauses.push('score >= $score'); params.$score = appsState.minScore;
+      }
+      if (appsState.minInstalls > 0) {
+        clauses.push("CAST(REPLACE(REPLACE(COALESCE(installs,'0'),',',''),'+','') AS INTEGER) >= $minInstalls");
+        params.$minInstalls = appsState.minInstalls;
+      }
+      if (appsState.search.trim()) {
+        clauses.push('(title LIKE $q OR developer LIKE $q OR package_name LIKE $q OR summary LIKE $q)');
+        params.$q = `%${appsState.search.trim()}%`;
+      }
+      if (appsState.multiOnly) {
+        clauses.push("matched_terms LIKE '%,%'");
+      }
+      return { where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', params };
+    }
+
+    function renderAppsTable() {
+      const { where, params } = buildAppsWhere();
+      const totalRow = safeExec(`SELECT COUNT(*), AVG(score) FROM discovered_apps ${where}`, params);
+      const [total, avgScore] = totalRow[0].values[0];
+      const pages = Math.max(1, Math.ceil(total / appsState.pageSize));
+      if (appsState.page >= pages) appsState.page = pages - 1;
+      const offset = appsState.page * appsState.pageSize;
+
+      // sort: installs needs numeric coercion
+      let orderBy;
+      if (appsState.sort === 'installs') {
+        orderBy = `CAST(REPLACE(REPLACE(COALESCE(installs,'0'),',',''),'+','') AS INTEGER) ${appsState.dir.toUpperCase()}`;
+      } else if (['score','title','developer','package_name'].includes(appsState.sort)) {
+        orderBy = `${appsState.sort} ${appsState.dir.toUpperCase()}`;
+      } else {
+        orderBy = `discovered_at DESC`;
+      }
+
+      const sql = `SELECT package_name, title, developer, score, installs, free, price, currency, icon, summary, matched_terms
+                   FROM discovered_apps ${where}
+                   ORDER BY ${orderBy} NULLS LAST
+                   LIMIT ${appsState.pageSize} OFFSET ${offset}`;
+      const res = safeExec(sql, params);
+      const rows = res.length ? res[0].values : [];
+
+      $('a-stats').innerHTML = `
+        <span><b>${total.toLocaleString()}</b> apps</span>
+        <span>avg <b>${avgScore ? avgScore.toFixed(2) : '–'}</b> ★</span>
+        ${appsState.term !== 'all' ? `<span>filter: <b>${escapeHtml(appsState.term)}</b></span>` : ''}
+      `;
+
+      if (!rows.length) {
+        $('a-table-wrap').innerHTML = `<div class="empty">No apps match these filters.</div>`;
+      } else {
+        const arrow = c => appsState.sort === c ? (appsState.dir === 'asc' ? ' ▲' : ' ▼') : '';
+        $('a-table-wrap').innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="title">App${arrow('title')}</th>
+                <th data-sort="developer">Developer${arrow('developer')}</th>
+                <th data-sort="score">Rating${arrow('score')}</th>
+                <th data-sort="installs">Installs${arrow('installs')}</th>
+                <th>Price</th>
+                <th>Matched terms</th>
+                <th>Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => {
+                const [pkg, title, dev, score, installs, free, price, currency, icon, summary, terms] = r;
+                const ratingClass = score && score < 3 ? 'rating low' : 'rating';
+                const priceLabel = free ? 'Free' : (price ? `${currency||''} ${price}` : '–');
+                const url = `https://play.google.com/store/apps/details?id=${pkg}`;
+                const termPills = (terms||'').split(',').filter(Boolean).map(t => `<span class="term">${escapeHtml(t)}</span>`).join('');
+                return `<tr>
+                  <td>
+                    <div class="app-cell">
+                      ${icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" />` : '<div style="width:40px;height:40px"></div>'}
+                      <div class="meta">
+                        <b>${escapeHtml(title||pkg)}</b>
+                        <span class="pkg">${escapeHtml(pkg)}</span>
+                        ${summary ? `<span>${escapeHtml(summary).slice(0,140)}${(summary||'').length>140?'…':''}</span>`:''}
+                      </div>
+                    </div>
+                  </td>
+                  <td>${escapeHtml(dev||'')}</td>
+                  <td class="${ratingClass}">${score ? score.toFixed(2) : '–'}</td>
+                  <td>${escapeHtml(installs||'–')}</td>
+                  <td>${priceLabel}</td>
+                  <td><div class="terms">${termPills}</div></td>
+                  <td><a class="app-link" href="${url}" target="_blank" rel="noopener">Open ↗</a></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        $('a-table-wrap').querySelectorAll('th[data-sort]').forEach(th => {
+          th.onclick = () => {
+            const c = th.dataset.sort;
+            if (appsState.sort === c) appsState.dir = appsState.dir === 'asc' ? 'desc' : 'asc';
+            else { appsState.sort = c; appsState.dir = 'desc'; }
+            renderAppsTable();
+          };
+        });
+      }
+
+      $('a-pageinfo').textContent = `Page ${appsState.page+1} / ${pages}`;
+      $('a-prev').disabled = appsState.page === 0;
+      $('a-next').disabled = appsState.page >= pages - 1;
+    }
+
+    const uiState = {
+      filtersCollapsed: localStorage.getItem('filtersCollapsed') === '1',
+    };
+
+    function filtersWrapStart(activeSummary) {
+      const cls = uiState.filtersCollapsed ? 'filters-wrap collapsed' : 'filters-wrap';
+      return `
+        <div class="${cls}" id="filters-wrap">
+          <div class="filters-bar">
+            <span style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:0.04em">Filters${activeSummary ? ' · '+activeSummary : ''}</span>
+            <button id="toggle-filters" type="button">${uiState.filtersCollapsed ? '▸ Show' : '▾ Hide'}</button>
+          </div>
+      `;
+    }
+    function filtersWrapEnd() {
+      return `</div>`;
+    }
+    function bindFiltersToggle() {
+      const btn = document.getElementById('toggle-filters');
+      if (!btn) return;
+      btn.onclick = () => {
+        uiState.filtersCollapsed = !uiState.filtersCollapsed;
+        localStorage.setItem('filtersCollapsed', uiState.filtersCollapsed ? '1' : '0');
+        const wrap = document.getElementById('filters-wrap');
+        if (wrap) wrap.classList.toggle('collapsed', uiState.filtersCollapsed);
+        btn.textContent = uiState.filtersCollapsed ? '▸ Show' : '▾ Hide';
+      };
+    }
+
+    const rankState = {
+      maxAgeYears: 'all',     // 'all' | 1 | 2 | 3 | 5
+      maxIPM: 0,              // 0 = no cap; otherwise apps with installs_per_month < maxIPM
+      minInstalls: 10000,     // viral_score floor; 0 = no floor (slow apps with <1K installs are noisy)
+      developerId: null,      // when set, filter to apps by this developer_id
+      developerName: null,    // display name for the active developer filter
+      minScore: 4,
+      monetization: 'all',    // 'all' | 'ads' | 'iap' | 'editors'
+      requireAds: false,
+      requireIAP: false,
+      maxStaleDays: 'all',    // 'all' | 30 | 90 | 180 | 365
+      term: 'all',
+      search: '',
+      sort: 'viral_score',
+      dir: 'desc',
+      page: 0,
+      pageSize: 50,
+    };
+
+    function rankFilterSummary() {
+      const parts = [];
+      if (rankState.term !== 'all') parts.push(rankState.term);
+      if (rankState.developerName) parts.push('dev: ' + rankState.developerName);
+      if (rankState.maxAgeYears !== 'all') parts.push('≤' + rankState.maxAgeYears + 'yr');
+      if (rankState.minInstalls > 0) parts.push((rankState.minInstalls/1000)+'K+');
+      if (rankState.maxIPM > 0) parts.push('<'+(rankState.maxIPM/1000)+'K/mo');
+      if (rankState.minScore > 0) parts.push(rankState.minScore+'★+');
+      if (rankState.search.trim()) parts.push('"'+rankState.search.trim()+'"');
+      return parts.join(' · ');
+    }
+
+    function renderRankingView() {
+      const sel = (v, cur) => String(v) === String(cur) ? ' selected' : '';
+      content.innerHTML = `
+        ${filtersWrapStart(rankFilterSummary())}
+        <div class="filters">
+          <label>Max age
+            <select id="r-age">
+              <option value="all"${sel('all', rankState.maxAgeYears)}>Any</option>
+              <option value="1"${sel('1', rankState.maxAgeYears)}>≤ 1 yr</option>
+              <option value="2"${sel('2', rankState.maxAgeYears)}>≤ 2 yrs</option>
+              <option value="3"${sel('3', rankState.maxAgeYears)}>≤ 3 yrs</option>
+              <option value="5"${sel('5', rankState.maxAgeYears)}>≤ 5 yrs</option>
+            </select>
+          </label>
+          <label>Max installs/mo
+            <select id="r-ipm">
+              <option value="0"${sel(0, rankState.maxIPM)}>Any</option>
+              <option value="1000"${sel(1000, rankState.maxIPM)}>&lt; 1K</option>
+              <option value="10000"${sel(10000, rankState.maxIPM)}>&lt; 10K</option>
+              <option value="50000"${sel(50000, rankState.maxIPM)}>&lt; 50K</option>
+              <option value="100000"${sel(100000, rankState.maxIPM)}>&lt; 100K</option>
+              <option value="500000"${sel(500000, rankState.maxIPM)}>&lt; 500K</option>
+              <option value="1000000"${sel(1000000, rankState.maxIPM)}>&lt; 1M</option>
+            </select>
+          </label>
+          <label>Min total installs
+            <select id="r-min-inst">
+              <option value="0"${sel(0, rankState.minInstalls)}>Any</option>
+              <option value="1000"${sel(1000, rankState.minInstalls)}>1K+</option>
+              <option value="5000"${sel(5000, rankState.minInstalls)}>5K+</option>
+              <option value="10000"${sel(10000, rankState.minInstalls)}>10K+</option>
+              <option value="50000"${sel(50000, rankState.minInstalls)}>50K+</option>
+              <option value="100000"${sel(100000, rankState.minInstalls)}>100K+</option>
+              <option value="1000000"${sel(1000000, rankState.minInstalls)}>1M+</option>
+            </select>
+          </label>
+          <label>Min rating
+            <select id="r-score">
+              <option value="0"${sel(0, rankState.minScore)}>Any</option>
+              <option value="3.5"${sel(3.5, rankState.minScore)}>3.5+</option>
+              <option value="4"${sel(4, rankState.minScore)}>4.0+</option>
+              <option value="4.3"${sel(4.3, rankState.minScore)}>4.3+</option>
+              <option value="4.5"${sel(4.5, rankState.minScore)}>4.5+</option>
+            </select>
+          </label>
+          <label>Updated within
+            <select id="r-stale">
+              <option value="all"${sel('all', rankState.maxStaleDays)}>Any</option>
+              <option value="30"${sel('30', rankState.maxStaleDays)}>30 days</option>
+              <option value="90"${sel('90', rankState.maxStaleDays)}>90 days</option>
+              <option value="180"${sel('180', rankState.maxStaleDays)}>6 months</option>
+              <option value="365"${sel('365', rankState.maxStaleDays)}>1 year</option>
+            </select>
+          </label>
+          <label>Niche
+            <select id="r-term"><option value="all">Any term</option></select>
+          </label>
+          <label>Monetization
+            <span class="ratings">
+              <span class="pill" id="r-ads">Has ads</span>
+              <span class="pill" id="r-iap">Has IAP</span>
+              <span class="pill" id="r-editors">Editor's Choice</span>
+            </span>
+          </label>
+          <label>Search
+            <input id="r-search" type="search" placeholder="title / developer…" />
+          </label>
+          <label>Page size
+            <select id="r-page"><option>25</option><option selected>50</option><option>100</option></select>
+          </label>
+        </div>
+        ${filtersWrapEnd()}
+        <div class="stats" id="r-stats"></div>
+        <div class="table-scroll" id="r-table-wrap"></div>
+        <div class="pager">
+          <button id="r-prev">← Prev</button>
+          <span id="r-pageinfo" class="meta"></span>
+          <button id="r-next">Next →</button>
+        </div>
+      `;
+      bindFiltersToggle();
+
+      // populate term dropdown from niche_saturation if present
+      const termsRes = safeExec("SELECT term, app_count FROM niche_saturation ORDER BY app_count DESC");
+      if (termsRes.length) {
+        $('r-term').innerHTML = `<option value="all">Any term</option>` +
+          termsRes[0].values.map(([t,c]) => `<option ${t===rankState.term?'selected':''} value="${escapeHtml(t)}">${escapeHtml(t)} (${c})</option>`).join('');
+      }
+
+      $('r-age').onchange = e => { rankState.maxAgeYears = e.target.value; rankState.page = 0; renderRankingTable(); };
+      $('r-ipm').onchange = e => { rankState.maxIPM = parseInt(e.target.value, 10); rankState.page = 0; renderRankingTable(); };
+      $('r-min-inst').onchange = e => { rankState.minInstalls = parseInt(e.target.value, 10); rankState.page = 0; renderRankingTable(); };
+      $('r-score').onchange = e => { rankState.minScore = parseFloat(e.target.value); rankState.page = 0; renderRankingTable(); };
+      $('r-stale').onchange = e => { rankState.maxStaleDays = e.target.value; rankState.page = 0; renderRankingTable(); };
+      $('r-term').onchange = e => { rankState.term = e.target.value; rankState.page = 0; renderRankingTable(); };
+      $('r-search').oninput = e => { rankState.search = e.target.value; rankState.page = 0; renderRankingTable(); };
+      $('r-page').onchange = e => { rankState.pageSize = +e.target.value; rankState.page = 0; renderRankingTable(); };
+      $('r-ads').onclick = () => { rankState.requireAds = !rankState.requireAds; $('r-ads').classList.toggle('active', rankState.requireAds); rankState.page = 0; renderRankingTable(); };
+      $('r-iap').onclick = () => { rankState.requireIAP = !rankState.requireIAP; $('r-iap').classList.toggle('active', rankState.requireIAP); rankState.page = 0; renderRankingTable(); };
+      $('r-editors').onclick = () => { rankState.monetization = rankState.monetization==='editors'?'all':'editors'; $('r-editors').classList.toggle('active', rankState.monetization==='editors'); rankState.page = 0; renderRankingTable(); };
+      $('r-prev').onclick = () => { rankState.page--; renderRankingTable(); window.scrollTo(0,0); };
+      $('r-next').onclick = () => { rankState.page++; renderRankingTable(); window.scrollTo(0,0); };
+
+      renderRankingTable();
+    }
+
+    function buildRankWhere() {
+      const clauses = ['released IS NOT NULL', 'installs_per_month IS NOT NULL'];
+      const params = {};
+      if (rankState.minInstalls > 0) {
+        clauses.push('min_installs >= $minInst'); params.$minInst = rankState.minInstalls;
+      }
+      if (rankState.maxAgeYears !== 'all') {
+        clauses.push(`released >= date('now', '-${parseInt(rankState.maxAgeYears,10)} years')`);
+      }
+      if (rankState.maxIPM > 0) { clauses.push('installs_per_month < $maxIPM'); params.$maxIPM = rankState.maxIPM; }
+      if (rankState.minScore > 0) { clauses.push('score >= $minScore'); params.$minScore = rankState.minScore; }
+      if (rankState.maxStaleDays !== 'all') {
+        clauses.push(`days_since_update <= ${parseInt(rankState.maxStaleDays,10)}`);
+      }
+      if (rankState.term !== 'all') {
+        clauses.push(`(',' || matched_terms || ',') LIKE $term`);
+        params.$term = `%,${rankState.term},%`;
+      }
+      if (rankState.developerId) {
+        clauses.push('developer_id = $devId'); params.$devId = rankState.developerId;
+      }
+      if (rankState.search.trim()) {
+        clauses.push('(title LIKE $q OR developer LIKE $q OR package_name LIKE $q)');
+        params.$q = `%${rankState.search.trim()}%`;
+      }
+      if (rankState.requireAds) clauses.push('contains_ads = 1');
+      if (rankState.requireIAP) clauses.push('offers_iap = 1');
+      if (rankState.monetization === 'editors') clauses.push('editors_choice = 1');
+      return { where: 'WHERE ' + clauses.join(' AND '), params };
+    }
+
+    const RANK_COLS = [
+      'package_name','title','developer','developer_id','genre','score','ratings','reviews',
+      'min_installs','installs','installs_per_month','released','days_since_update',
+      'histogram_1','histogram_2','histogram_3','histogram_4','histogram_5',
+      'contains_ads','offers_iap','iap_price_range','editors_choice','size','icon','matched_terms'
+    ];
+
+    function renderRankingTable() {
+      const { where, params } = buildRankWhere();
+      // Pull all matching candidates (filter set is already small after where clause).
+      const sql = `SELECT ${RANK_COLS.join(',')} FROM apps_ranked ${where} LIMIT 5000`;
+      const res = safeExec(sql, params);
+      const raw = res.length ? res[0].values : [];
+
+      // Convert to objects + compute viral_score in JS.
+      const floor = rankState.minInstalls > 0 ? rankState.minInstalls : 1;
+      const candidates = raw.map(arr => {
+        const obj = {};
+        RANK_COLS.forEach((c, i) => obj[c] = arr[i]);
+        obj.viral_score = computeViralScore(obj, floor);
+        // synthetic sort keys for non-column fields
+        obj._money_score = (obj.contains_ads?1:0) + (obj.offers_iap?2:0) + (obj.editors_choice?4:0);
+        obj._niche_first = (obj.matched_terms||'').split(',').filter(Boolean).sort()[0] || '';
+        return obj;
+      }).filter(r => r.viral_score != null);
+
+      // Sort.
+      const dir = rankState.dir === 'asc' ? 1 : -1;
+      const sortKey = rankState.sort;
+      candidates.sort((a, b) => {
+        const av = a[sortKey], bv = b[sortKey];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        if (typeof av === 'string') return dir * av.localeCompare(bv);
+        return dir * (av - bv);
+      });
+
+      const total = candidates.length;
+      const pages = Math.max(1, Math.ceil(total / rankState.pageSize));
+      if (rankState.page >= pages) rankState.page = pages - 1;
+      if (rankState.page < 0) rankState.page = 0;
+      const offset = rankState.page * rankState.pageSize;
+      const pageRows = candidates.slice(offset, offset + rankState.pageSize);
+
+      const avgVS = total ? candidates.reduce((s,r) => s + r.viral_score, 0) / total : 0;
+
+      // If a niche is selected, show how many apps in that niche fell below the 10K min-reach floor.
+      let excludedNote = '';
+      if (rankState.term !== 'all') {
+        const niches = safeExec(
+          "SELECT app_count FROM niche_saturation WHERE term = $term",
+          { $term: rankState.term }
+        );
+        const nicheTotal = niches.length ? niches[0].values[0][0] : 0;
+        const excluded = Math.max(0, nicheTotal - total);
+        if (excluded > 0) {
+          const floorLabel = rankState.minInstalls >= 1000 ? `${(rankState.minInstalls/1000).toLocaleString()}K` : rankState.minInstalls;
+          excludedNote = `<span style="color:var(--muted)">${excluded} more in <b>${escapeHtml(rankState.term)}</b> below ${floorLabel} install floor</span>`;
+        }
+      }
+
+      const devChip = rankState.developerId
+        ? `<span class="dev-chip">developer: <b>${escapeHtml(rankState.developerName || rankState.developerId)}</b> <a href="#" id="r-clear-dev" title="Clear developer filter">✕</a></span>`
+        : '';
+
+      // Update the collapsed-filter summary chip live
+      const fb = document.querySelector('.filters-bar > span');
+      if (fb) {
+        const sum = rankFilterSummary();
+        fb.innerHTML = 'Filters' + (sum ? ' · ' + escapeHtml(sum) : '');
+      }
+
+      $('r-stats').innerHTML = `
+        <span><b>${total.toLocaleString()}</b> candidates</span>
+        <span>avg viral score <b>${total ? avgVS.toFixed(1) : '–'}</b></span>
+        ${devChip}
+        ${excludedNote}
+        <span style="font-family:ui-monospace,monospace;font-size:11px">score = 3·velocity_log + 2·(rating−3) + 0.5·reach_log − 3·polarization − stale_yrs</span>
+      `;
+      const clearDev = document.getElementById('r-clear-dev');
+      if (clearDev) clearDev.onclick = (ev) => {
+        ev.preventDefault();
+        rankState.developerId = null;
+        rankState.developerName = null;
+        rankState.page = 0;
+        renderRankingTable();
+      };
+
+      if (!pageRows.length) {
+        $('r-table-wrap').innerHTML = `<div class="empty">No apps match these filters.</div>`;
+      } else {
+        const arrow = c => rankState.sort === c ? (rankState.dir === 'asc' ? ' ▲' : ' ▼') : '';
+        $('r-table-wrap').innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="viral_score">Viral${arrow('viral_score')}</th>
+                <th data-sort="title">App${arrow('title')}</th>
+                <th data-sort="developer">Developer${arrow('developer')}</th>
+                <th data-sort="installs_per_month">Installs/mo${arrow('installs_per_month')}</th>
+                <th data-sort="min_installs">Total${arrow('min_installs')}</th>
+                <th data-sort="released">Released${arrow('released')}</th>
+                <th data-sort="score">Rating${arrow('score')}</th>
+                <th data-sort="reviews">Reviews${arrow('reviews')}</th>
+                <th data-sort="days_since_update">Last upd${arrow('days_since_update')}</th>
+                <th data-sort="_money_score">Money${arrow('_money_score')}</th>
+                <th data-sort="_niche_first">Niche${arrow('_niche_first')}</th>
+                <th>Reviews</th>
+                <th>Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pageRows.map(r => {
+                const url = `https://play.google.com/store/apps/details?id=${r.package_name}`;
+                const ratingClass = r.score && r.score < 3.5 ? 'rating low' : 'rating';
+                const moneyBadges = [
+                  r.contains_ads ? '<span class="term">ads</span>' : '',
+                  r.offers_iap ? `<span class="term">IAP${r.iap_price_range?': '+escapeHtml(r.iap_price_range):''}</span>` : '',
+                  r.editors_choice ? '<span class="term" style="background:var(--accent);color:#0f1115">★EC</span>' : '',
+                ].filter(Boolean).join(' ');
+                const termPills = (r.matched_terms||'').split(',').filter(Boolean).slice(0,3).map(t => `<span class="term">${escapeHtml(t)}</span>`).join(' ');
+                const devCell = r.developer_id
+                  ? `<button class="dev-link" data-dev-id="${escapeHtml(r.developer_id)}" data-dev-name="${escapeHtml(r.developer||'')}" title="See all apps by this developer">${escapeHtml(r.developer||r.developer_id)}</button>`
+                  : escapeHtml(r.developer||'–');
+                return `<tr>
+                  <td class="rating">${r.viral_score.toFixed(1)}</td>
+                  <td>
+                    <div class="app-cell">
+                      ${r.icon ? `<img src="${escapeHtml(r.icon)}" alt="" loading="lazy" />` : '<div style="width:40px;height:40px"></div>'}
+                      <div class="meta">
+                        <b>${escapeHtml(r.title||r.package_name)}</b>
+                        <span>${r.genre?escapeHtml(r.genre):''}</span>
+                        <span class="pkg">${escapeHtml(r.package_name)}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>${devCell}</td>
+                  <td><b>${r.installs_per_month!=null?Math.round(r.installs_per_month).toLocaleString():'–'}</b></td>
+                  <td>${escapeHtml(r.installs||'–')}</td>
+                  <td>${r.released||'–'}</td>
+                  <td class="${ratingClass}">${r.score?r.score.toFixed(2):'–'}</td>
+                  <td>${r.reviews!=null?r.reviews.toLocaleString():'–'}</td>
+                  <td>${r.days_since_update!=null?r.days_since_update+'d':'–'}</td>
+                  <td>${moneyBadges||'–'}</td>
+                  <td><div class="terms">${termPills}</div></td>
+                  <td><button class="fetch-btn" data-pkg="${escapeHtml(r.package_name)}"></button></td>
+                  <td><a class="app-link" href="${url}" target="_blank" rel="noopener">Open ↗</a></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+        $('r-table-wrap').querySelectorAll('th[data-sort]').forEach(th => {
+          th.onclick = () => {
+            const c = th.dataset.sort;
+            if (rankState.sort === c) rankState.dir = rankState.dir === 'asc' ? 'desc' : 'asc';
+            else { rankState.sort = c; rankState.dir = 'desc'; }
+            renderRankingTable();
+          };
+        });
+        $('r-table-wrap').querySelectorAll('button.fetch-btn[data-pkg]').forEach(btn => {
+          updateFetchButton(btn, btn.dataset.pkg);
+          btn.onclick = () => handleFetchClick(btn.dataset.pkg);
+        });
+        $('r-table-wrap').querySelectorAll('button.dev-link[data-dev-id]').forEach(btn => {
+          btn.onclick = async () => {
+            const devId = btn.dataset.devId;
+            const devName = btn.dataset.devName || devId;
+            try {
+              await fetchDeveloperApps(devId, devName);
+            } catch (e) {
+              alert('Failed to fetch developer apps: ' + e.message);
+              return;
+            }
+            pushHistory(currentLabel());
+            rankState.developerId = devId;
+            rankState.developerName = devName;
+            // relax filters so we don't accidentally hide this dev's other apps
+            rankState.term = 'all';
+            rankState.maxIPM = 0;
+            rankState.minInstalls = 0;
+            rankState.maxAgeYears = 'all';
+            rankState.minScore = 0;
+            rankState.maxStaleDays = 'all';
+            rankState.requireAds = false;
+            rankState.requireIAP = false;
+            rankState.monetization = 'all';
+            rankState.search = '';
+            rankState.page = 0;
+            setView('ranking');
+            window.scrollTo({ top: 0, behavior: 'auto' });
+          };
+        });
+      }
+
+      $('r-pageinfo').textContent = `Page ${rankState.page+1} / ${pages}`;
+      $('r-prev').disabled = rankState.page === 0;
+      $('r-next').disabled = rankState.page >= pages - 1;
+    }
+
+    let CATEGORIES_CACHE = null;     // raw response from /api/categories
+    const nicheState = {
+      categoryId: localStorage.getItem('niche.categoryId') || 'SPIRITUAL_RELIGIOUS',
+      sort: 'opportunity',
+    };
+
+    async function loadCategories(force) {
+      if (CATEGORIES_CACHE && !force) return CATEGORIES_CACHE;
+      const r = await fetch('/api/categories', { cache: 'no-store' });
+      const j = await r.json();
+      CATEGORIES_CACHE = j.items || [];
+      return CATEGORIES_CACHE;
+    }
+
+    async function renderNichesView() {
+      content.innerHTML = `<div class="loading">Loading categories…</div>`;
+      let cats;
+      try {
+        cats = await loadCategories();
+      } catch (e) {
+        content.innerHTML = `<div class="empty">Failed to load /api/categories: ${escapeHtml(e.message)}<br>Make sure server.py is running.</div>`;
+        return;
+      }
+      const cat = cats.find(c => c.id === nicheState.categoryId) || cats[0];
+      nicheState.categoryId = cat.id;
+
+      content.innerHTML = `
+        <div class="filters" style="grid-template-columns:1.5fr 1fr">
+          <label>Category
+            <select id="n-cat">
+              ${cats.map(c => `<option value="${escapeHtml(c.id)}" ${c.id===cat.id?'selected':''}>${c.cached?'✓':'⬇'} ${escapeHtml(c.name)}${c.cached?` · ${c.app_count.toLocaleString()} apps`:''}</option>`).join('')}
+            </select>
+          </label>
+          <label>Sort
+            <select id="n-sort">
+              <option value="count" ${nicheState.sort==='count'?'selected':''}>Most competitive (highest app count)</option>
+              <option value="opportunity" ${nicheState.sort==='opportunity'?'selected':''}>Best opportunity (low count × low avg installs)</option>
+              <option value="avgInstalls" ${nicheState.sort==='avgInstalls'?'selected':''}>Highest avg installs</option>
+              <option value="avgScore" ${nicheState.sort==='avgScore'?'selected':''}>Highest avg rating</option>
+            </select>
+          </label>
+        </div>
+        <div class="stats" id="n-stats"></div>
+        <div id="n-table-wrap"></div>
+      `;
+
+      $('n-cat').onchange = async (ev) => {
+        const newId = ev.target.value;
+        const c = cats.find(x => x.id === newId);
+        nicheState.categoryId = newId;
+        localStorage.setItem('niche.categoryId', newId);
+        if (!c.cached) {
+          showOverlay(`Discovering "${c.name}" — searching Google Play for ${c.keywords.length} keywords…`);
+          try {
+            const r = await fetch('/api/discover_category?id=' + encodeURIComponent(newId), { method: 'POST' });
+            const j = await r.json();
+            if (!j.ok) throw new Error(j.error || 'unknown error');
+            showOverlay(`Found ${j.found} apps. Loading…`);
+            await reloadDb();
+            await loadCategories(true); // refresh cached flags
+          } catch (e) {
+            hideOverlay();
+            alert('Discovery failed: ' + e.message);
+            return;
+          } finally {
+            hideOverlay();
+          }
+        }
+        renderNichesView();
+      };
+      $('n-sort').onchange = (ev) => { nicheState.sort = ev.target.value; rerender(); };
+
+      // Fetch niche_saturation rows scoped to this category's keywords.
+      const kwSet = new Set(cat.keywords);
+      const allRowsRes = safeExec("SELECT term, app_count, ROUND(avg_min_installs) AS avg_inst, max_min_installs, ROUND(avg_score,2) AS avg_score FROM niche_saturation");
+      const allRows = allRowsRes.length ? allRowsRes[0].values : [];
+      const rows = allRows.filter(r => kwSet.has(r[0]));
+
+      function rerender() {
+        const mode = nicheState.sort;
+        const sorted = [...rows];
+        if (mode === 'count') sorted.sort((a,b) => b[1]-a[1]);
+        else if (mode === 'avgInstalls') sorted.sort((a,b) => (b[2]||0)-(a[2]||0));
+        else if (mode === 'avgScore') sorted.sort((a,b) => (b[4]||0)-(a[4]||0));
+        else sorted.sort((a,b) => {
+          const oa = (a[1] || 1) * Math.log10(Math.max(10, a[3]||10));
+          const ob = (b[1] || 1) * Math.log10(Math.max(10, b[3]||10));
+          return oa - ob;
+        });
+
+        $('n-stats').innerHTML = rows.length
+          ? `<span><b>${rows.length}</b> niches in <b>${escapeHtml(cat.name)}</b></span><span>tip: low count + low avg installs = underserved</span>`
+          : `<span style="color:var(--muted)">No niche data yet for <b>${escapeHtml(cat.name)}</b>.</span>`;
+
+        if (!rows.length) {
+          $('n-table-wrap').innerHTML = `<div class="empty">No apps discovered for this category yet. (Re)select it from the dropdown to scrape.</div>`;
+          return;
+        }
+
+        $('n-table-wrap').innerHTML = `
+          <table>
+            <thead><tr><th></th><th>Niche</th><th># apps</th><th>Avg installs</th><th>Top app installs</th><th>Avg rating</th></tr></thead>
+            <tbody>
+              ${sorted.map(([t,c2,avg,mx,sc]) => `<tr>
+                <td><button class="fetch-btn" data-niche="${escapeHtml(t)}">View apps →</button></td>
+                <td><b>${escapeHtml(t)}</b></td>
+                <td>${c2}</td>
+                <td>${avg!=null?Math.round(avg).toLocaleString():'–'}</td>
+                <td>${mx!=null?mx.toLocaleString():'–'}</td>
+                <td class="rating">${sc!=null?sc.toFixed(2):'–'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        `;
+        $('n-table-wrap').querySelectorAll('button[data-niche]').forEach(btn => {
+          btn.onclick = () => {
+            pushHistory(currentLabel());
+            rankState.term = btn.dataset.niche;
+            rankState.developerId = null;
+            rankState.developerName = null;
+            rankState.maxIPM = 0;
+            rankState.minInstalls = 0;
+            rankState.maxAgeYears = 'all';
+            rankState.minScore = 0;
+            rankState.maxStaleDays = 'all';
+            rankState.requireAds = false;
+            rankState.requireIAP = false;
+            rankState.monetization = 'all';
+            rankState.search = '';
+            rankState.page = 0;
+            rankState.sort = 'viral_score';
+            rankState.dir = 'desc';
+            setView('ranking');
+            window.scrollTo({ top: 0, behavior: 'auto' });
+          };
+        });
+      }
+      rerender();
+    }
+
+    async function renderAdminView() {
+      content.innerHTML = `<div class="loading">Loading email campaign health…</div>`;
+      let data;
+      try {
+        const r = await fetch('/api/admin/email_stats', { cache: 'no-store' });
+        if (r.status === 403) {
+          content.innerHTML = '<div class="empty">Admin only.</div>';
+          return;
+        }
+        data = await r.json();
+      } catch (e) {
+        content.innerHTML = `<div class="empty">Failed to load: ${escapeHtml(e.message)}</div>`;
+        return;
+      }
+      // Aggregate daily by date for a calendar heatmap
+      const dayMap = new Map(); // 'YYYY-MM-DD' -> {sent, failed}
+      for (const r of data.daily || []) {
+        const slot = dayMap.get(r.date) || { sent: 0, failed: 0 };
+        if (r.status === 'sent') slot.sent += r.count;
+        if (r.status === 'failed') slot.failed += r.count;
+        dayMap.set(r.date, slot);
+      }
+      // Build last 30-day grid
+      const today = new Date();
+      const days = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(today.getTime() - i * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        days.push({ iso, label: d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }), ...(dayMap.get(iso) || { sent: 0, failed: 0 }) });
+      }
+      const maxN = Math.max(1, ...days.map(d => d.sent + d.failed));
+
+      const byCamp = (data.by_campaign || []).map(c => `<tr>
+        <td><b>${escapeHtml(c.campaign)}</b></td>
+        <td>${c.sent}</td>
+        <td style="color:${c.failed?'var(--bad)':'var(--muted)'}">${c.failed}</td>
+        <td>${c.sent + c.failed > 0 ? Math.round(c.sent * 100 / (c.sent + c.failed)) : '–'}%</td>
+      </tr>`).join('');
+
+      const recent = (data.recent || []).map(r => `<tr>
+        <td>${escapeHtml((r.scheduled_at||'').replace('T',' ').slice(0,16))}</td>
+        <td>${escapeHtml(r.campaign)}</td>
+        <td>${escapeHtml(r.email)}</td>
+        <td><span class="term" style="background:${r.status==='sent'?'rgba(74,222,128,0.15)':'rgba(255,122,122,0.15)'};color:${r.status==='sent'?'#4ade80':'var(--bad)'}">${escapeHtml(r.status)}</span></td>
+        <td style="color:var(--muted);font-size:11px">${escapeHtml(r.error||'')}</td>
+      </tr>`).join('');
+
+      content.innerHTML = `
+        <h2 style="margin:8px 0 16px">Email campaign health</h2>
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px">Last 30 days</div>
+          <div style="display:grid;grid-template-columns:repeat(30,1fr);gap:3px;align-items:end;height:100px">
+            ${days.map(d => {
+              const total = d.sent + d.failed;
+              const h = Math.max(2, Math.round((total / maxN) * 100));
+              const tip = `${d.iso}: ${d.sent} sent${d.failed?`, ${d.failed} failed`:''}`;
+              const col = d.failed > 0 ? 'var(--bad)' : 'var(--accent)';
+              return `<div title="${tip}" style="background:${col};height:${h}%;border-radius:2px;opacity:${total?1:0.15}"></div>`;
+            }).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px">
+            <span>${days[0].label}</span><span>${days[15].label}</span><span>${days[29].label}</span>
+          </div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">By campaign (last 30 days)</div>
+          <table>
+            <thead><tr><th>Campaign</th><th>Sent</th><th>Failed</th><th>Success rate</th></tr></thead>
+            <tbody>${byCamp || '<tr><td colspan="4" style="color:var(--muted)">No emails yet.</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Last 50 emails</div>
+          <table>
+            <thead><tr><th>Time</th><th>Campaign</th><th>Recipient</th><th>Status</th><th>Error</th></tr></thead>
+            <tbody>${recent || '<tr><td colspan="5" style="color:var(--muted)">No emails yet.</td></tr>'}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderReviewsView() {
+      content.innerHTML = `
+        <div class="filters">
+          <label>Source table
+            <select id="f-table">${tables.map(t => `<option ${t===state.table?'selected':''}>${t}</option>`).join('')}</select>
+          </label>
+          <label>App
+            <select id="f-pkg"></select>
+          </label>
+          <label>Rating
+            <div class="ratings" id="f-ratings">
+              ${[1,2,3,4,5].map(n => `<span class="pill ${state.ratings.has(n)?'active':''}" data-r="${n}">${n}★</span>`).join('')}
+            </div>
+          </label>
+          <label>Search text
+            <input id="f-search" type="search" placeholder="contains…" value="${escapeHtml(state.search)}" />
+          </label>
+          <label>Page size
+            <select id="f-page">
+              <option>25</option><option ${state.pageSize===50?'selected':''}>50</option><option ${state.pageSize===100?'selected':''}>100</option><option ${state.pageSize===250?'selected':''}>250</option>
+            </select>
+          </label>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div id="table-wrap"></div>
+        <div class="pager">
+          <button id="prev">← Prev</button>
+          <span id="pageinfo" class="meta"></span>
+          <button id="next">Next →</button>
+        </div>
+      `;
+
+      $('f-table').onchange = e => { state.table = e.target.value; state.pkg = 'all'; state.page = 0; refreshPkgOptions(); render(); };
+      $('f-pkg').onchange = e => { state.pkg = e.target.value; state.page = 0; render(); };
+      $('f-search').oninput = e => { state.search = e.target.value; state.page = 0; render(); };
+      $('f-page').onchange = e => { state.pageSize = +e.target.value; state.page = 0; render(); };
+      $('f-ratings').onclick = e => {
+        if (!e.target.classList.contains('pill')) return;
+        const r = +e.target.dataset.r;
+        if (state.ratings.has(r)) state.ratings.delete(r); else state.ratings.add(r);
+        if (!state.ratings.size) { [1,2,3,4,5].forEach(n => state.ratings.add(n)); }
+        $('f-ratings').querySelectorAll('.pill').forEach(p => p.classList.toggle('active', state.ratings.has(+p.dataset.r)));
+        state.page = 0;
+        render();
+      };
+      $('prev').onclick = () => { state.page--; render(); window.scrollTo(0,0); };
+      $('next').onclick = () => { state.page++; render(); window.scrollTo(0,0); };
+
+      refreshPkgOptions();
+      render();
+    }
+
+    let currentView = hasRanking ? 'ranking' : (tables.length ? 'reviews' : 'apps');
+
+    // ---- Navigation history ----
+    // Each entry is a snapshot of {view, label, rank, review, niche}.
+    // Push on user-driven drill-downs (niche → ranking, dev → ranking, view N → reviews).
+    // Tab clicks reset to a fresh "Home" stack.
+    const navHistory = [];
+
+    function snapshotState() {
+      return {
+        view: currentView,
+        rank: JSON.parse(JSON.stringify({
+          ...rankState, ratings: undefined,
+        })),
+        review: {
+          table: state.table, pkg: state.pkg, page: state.page,
+          ratings: [...state.ratings], search: state.search,
+          sort: state.sort, dir: state.dir,
+        },
+        niche: { categoryId: nicheState.categoryId, sort: nicheState.sort },
+      };
+    }
+
+    function restoreSnapshot(snap) {
+      Object.assign(rankState, snap.rank);
+      state.table = snap.review.table;
+      state.pkg = snap.review.pkg;
+      state.page = snap.review.page;
+      state.ratings = new Set(snap.review.ratings);
+      state.search = snap.review.search;
+      state.sort = snap.review.sort;
+      state.dir = snap.review.dir;
+      nicheState.categoryId = snap.niche.categoryId;
+      nicheState.sort = snap.niche.sort;
+    }
+
+    function pushHistory(label) {
+      navHistory.push({ ...snapshotState(), label });
+    }
+
+    function clearHistory() {
+      navHistory.length = 0;
+    }
+
+    function currentLabel() {
+      // Best-effort label for the current state, used as the trailing breadcrumb item.
+      if (currentView === 'reviews') {
+        return state.pkg && state.pkg !== 'all' ? `Reviews: ${state.pkg}` : 'Reviews';
+      }
+      if (currentView === 'niches') {
+        const cats = CATEGORIES_CACHE || [];
+        const c = cats.find(x => x.id === nicheState.categoryId);
+        return 'Niches' + (c ? ` · ${c.name}` : '');
+      }
+      if (currentView === 'ranking') {
+        if (rankState.developerName) return `Dev: ${rankState.developerName}`;
+        if (rankState.term && rankState.term !== 'all') return `Niche: ${rankState.term}`;
+        return 'Ranking';
+      }
+      return 'Apps';
+    }
+
+    function renderBreadcrumb() {
+      const el = document.getElementById('breadcrumb');
+      if (!el) return;
+      if (navHistory.length === 0) {
+        el.style.display = 'none';
+        return;
+      }
+      el.style.display = 'flex';
+      const parts = [];
+      parts.push(`<button class="back" id="bc-back" ${navHistory.length === 0 ? 'disabled' : ''}>← Back</button>`);
+      parts.push(`<button class="crumb" data-idx="-1">Home</button>`);
+      navHistory.forEach((entry, i) => {
+        parts.push(`<span class="sep">›</span>`);
+        parts.push(`<button class="crumb" data-idx="${i}">${escapeHtml(entry.label)}</button>`);
+      });
+      parts.push(`<span class="sep">›</span>`);
+      parts.push(`<button class="crumb current">${escapeHtml(currentLabel())}</button>`);
+      el.innerHTML = parts.join(' ');
+      el.querySelector('#bc-back').onclick = goBack;
+      el.querySelectorAll('button.crumb[data-idx]').forEach(btn => {
+        btn.onclick = () => jumpToHistory(parseInt(btn.dataset.idx, 10));
+      });
+    }
+
+    function goBack() {
+      if (!navHistory.length) return;
+      const prev = navHistory.pop();
+      restoreSnapshot(prev);
+      setView(prev.view, { skipHistory: true });
+    }
+
+    function jumpToHistory(idx) {
+      // idx = -1 means "Home" (clear all history, reset rank filters, ranking view)
+      if (idx < 0) {
+        clearHistory();
+        // Reset rank filters to a clean default
+        rankState.term = 'all';
+        rankState.developerId = null;
+        rankState.developerName = null;
+        rankState.maxIPM = 0;
+        rankState.minInstalls = 10000;
+        rankState.maxAgeYears = 'all';
+        rankState.minScore = 4;
+        rankState.maxStaleDays = 'all';
+        rankState.requireAds = false;
+        rankState.requireIAP = false;
+        rankState.monetization = 'all';
+        rankState.search = '';
+        rankState.page = 0;
+        rankState.sort = 'viral_score';
+        rankState.dir = 'desc';
+        setView(hasRanking ? 'ranking' : 'reviews', { skipHistory: true });
+        return;
+      }
+      // Restore that entry and drop everything after it
+      const target = navHistory[idx];
+      navHistory.length = idx;
+      restoreSnapshot(target);
+      setView(target.view, { skipHistory: true });
+    }
+
+    function setView(v, opts) {
+      currentView = v;
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+      if (v === 'reviews') renderReviewsView();
+      else if (v === 'apps') renderAppsView();
+      else if (v === 'ranking') renderRankingView();
+      else if (v === 'niches') renderNichesView();
+      else if (v === 'admin') renderAdminView();
+      renderBreadcrumb();
+    }
+    // Reveal admin tab if vf-user meta says so
+    const vfUser = document.querySelector('meta[name="vf-user"]');
+    if (vfUser && vfUser.dataset.admin === '1') {
+      document.querySelectorAll('.tab[data-admin-only="1"]').forEach(t => { t.style.display = ''; });
+    }
+    document.querySelectorAll('.tab').forEach(t => {
+      if (t.dataset.view === 'apps' && !hasDiscovered) { t.style.display = 'none'; return; }
+      if (t.dataset.view === 'reviews' && !tables.length) { t.style.display = 'none'; return; }
+      if (t.dataset.view === 'ranking' && !hasRanking) { t.style.display = 'none'; return; }
+      if (t.dataset.view === 'niches' && !hasNiches) { t.style.display = 'none'; return; }
+      t.onclick = () => {
+        // explicit tab click resets the journey
+        clearHistory();
+        setView(t.dataset.view);
+      };
+    });
+
+    const metaParts = [];
+    if (tables.length) metaParts.push(`reviews: ${tables.join(', ')}`);
+    if (hasDiscovered) {
+      const c = db.exec('SELECT COUNT(*) FROM discovered_apps')[0].values[0][0];
+      metaParts.push(`discovered: ${c.toLocaleString()}`);
+    }
+    if (hasRanking) {
+      const r = db.exec("SELECT COUNT(*) FROM apps_ranked WHERE min_installs >= 10000 AND released IS NOT NULL")[0].values[0][0];
+      metaParts.push(`ranked: ${r.toLocaleString()}`);
+    }
+    dbmeta.textContent = metaParts.join(' · ');
+
+    // ---- Discovery progress widget ----
+    let discoTimer = null;
+    let discoLast = null;
+    let discoLastTs = 0;
+    let discoPrevPhase = null;
+
+    async function refreshDiscovery() {
+      try {
+        const r = await fetch('/api/discovery_status', { cache: 'no-store' });
+        const d = await r.json();
+        renderDiscoPill(d);
+        renderDiscoPanel(d);
+        // poll while active
+        const isActive = d.phase === 'enrichment' || d.phase === 'discovery';
+        if (isActive && !discoTimer) discoTimer = setInterval(refreshDiscovery, 5000);
+        else if (!isActive && discoTimer) { clearInterval(discoTimer); discoTimer = null; }
+        // notify on phase transitions
+        if (discoPrevPhase && discoPrevPhase !== d.phase) {
+          if (d.phase === 'done') emitNotification('success', '✓ Discovery + enrichment complete');
+          if (d.phase === 'stalled') emitNotification('warn', '⚠ Discovery process exited but enrichment still has pending apps');
+        }
+        discoPrevPhase = d.phase;
+      } catch (e) { /* server may be down */ }
+    }
+
+    function renderDiscoPill(d) {
+      const pill = document.getElementById('disco-pill');
+      if (!pill) return;
+      if (d.phase === 'idle') { pill.style.display = 'none'; return; }
+      pill.style.display = 'flex';
+      pill.classList.toggle('running', d.phase === 'enrichment' || d.phase === 'discovery');
+      pill.classList.toggle('done', d.phase === 'done');
+      pill.classList.toggle('stalled', d.phase === 'stalled');
+      const target = d.n_enrichment_target || 1;
+      const enriched = d.n_enriched_ok + d.n_enriched_err;
+      const pct = Math.min(100, Math.floor(enriched * 100 / target));
+      const phaseLabel = {
+        'discovery': 'Discovery: searching keywords…',
+        'enrichment': `Enriching ${enriched.toLocaleString()}/${target.toLocaleString()} (${pct}%)`,
+        'done': `✓ Done · ${d.n_enriched_ok.toLocaleString()} enriched`,
+        'stalled': `⚠ Stalled · ${d.n_enrichment_pending.toLocaleString()} pending`,
+      }[d.phase] || d.phase;
+      document.getElementById('disco-label').textContent = phaseLabel;
+      document.getElementById('disco-bar-fill').style.width = pct + '%';
+
+      // compute ETA if running
+      const now = Date.now();
+      if ((d.phase === 'enrichment') && discoLast != null) {
+        const dt = (now - discoLastTs) / 1000;
+        const dn = enriched - discoLast;
+        if (dt > 0 && dn > 0) {
+          const rate = dn / dt; // apps/sec
+          const remaining = target - enriched;
+          const etaSec = Math.round(remaining / rate);
+          pill.title = `Rate ~${(rate*60).toFixed(0)}/min · ETA ~${formatEta(etaSec)}`;
+        }
+      } else {
+        pill.title = `Background discovery: phase=${d.phase}`;
+      }
+      // sample slowly so the rate reflects more than just one poll
+      if (now - discoLastTs > 30000 || discoLast == null) {
+        discoLast = enriched;
+        discoLastTs = now;
+      }
+    }
+
+    function formatEta(sec) {
+      if (sec < 60) return sec + 's';
+      if (sec < 3600) return Math.round(sec/60) + 'm';
+      return Math.floor(sec/3600) + 'h ' + Math.round((sec%3600)/60) + 'm';
+    }
+
+    function renderDiscoPanel(d) {
+      const panel = document.getElementById('disco-panel');
+      if (!panel) return;
+      const target = d.n_enrichment_target || 1;
+      const enriched = d.n_enriched_ok + d.n_enriched_err;
+      const pct = Math.min(100, Math.floor(enriched * 100 / target));
+
+      const catRows = (d.category_runs || [])
+        .slice()
+        .sort((a,b) => b.app_count - a.app_count)
+        .map(c => `<tr><td>${escapeHtml(c.category_id)}</td><td>${c.app_count.toLocaleString()}</td></tr>`)
+        .join('');
+
+      panel.innerHTML = `
+        <h3>Background discovery · <span style="color:var(--muted);font-weight:400">phase: ${escapeHtml(d.phase)}</span></h3>
+        <div class="disco-grid">
+          <div><b>${d.n_discovered.toLocaleString()}</b><span>discovered apps</span></div>
+          <div><b>${d.n_enriched_ok.toLocaleString()}</b><span>enriched ok</span></div>
+          <div><b>${d.n_enrichment_pending.toLocaleString()}</b><span>pending enrichment</span></div>
+          <div><b>${d.categories_done}/${d.categories_total}</b><span>categories scraped</span></div>
+        </div>
+        <div class="disco-bar" style="width:100%;height:8px"><div style="width:${pct}%;height:100%;background:var(--accent)"></div></div>
+        <div class="disco-eta">Enrichment ${pct}% complete${d.n_enriched_err>0?` · ${d.n_enriched_err} errors`:''}${d.failures_count>0?` · ${d.failures_count} keyword failures`:''}</div>
+        <h3 style="margin-top:14px">Per-category app counts</h3>
+        <div class="disco-cats"><table>${catRows}</table></div>
+      `;
+    }
+
+    document.getElementById('disco-pill').onclick = () => {
+      const p = document.getElementById('disco-panel');
+      p.classList.toggle('open');
+    };
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('#disco-pill') && !ev.target.closest('#disco-panel')) {
+        document.getElementById('disco-panel').classList.remove('open');
+      }
+    });
+
+    // bell toggle
+    const bellEl = document.getElementById('notif-bell');
+    const panelEl = document.getElementById('notif-panel');
+    bellEl.onclick = () => {
+      panelEl.classList.toggle('open');
+      if (panelEl.classList.contains('open')) renderNotifPanel();
+    };
+    document.getElementById('notif-clear').onclick = () => {
+      notifications.length = 0;
+      renderNotifBell();
+      renderNotifPanel();
+    };
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('#notif-bell') && !ev.target.closest('#notif-panel')) {
+        panelEl.classList.remove('open');
+      }
+    });
+    renderNotifBell();
+
+    setView(currentView);
+    refreshStatus();
+    refreshDiscovery();
+  })();
+  </script>
+</body>
+</html>

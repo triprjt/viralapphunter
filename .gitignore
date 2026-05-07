@@ -1,0 +1,11 @@
+.env
+reviews.db
+reviews.db-journal
+reviews.db-shm
+reviews.db-wal
+config.yaml
+__pycache__/
+.venv/
+*.pyc
+.claude/
+.DS_Store

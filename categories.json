@@ -1,0 +1,361 @@
+[
+  {
+    "id": "SPIRITUAL_RELIGIOUS",
+    "name": "Spiritual & Religious",
+    "genre_ids": ["LIFESTYLE", "BOOKS_AND_REFERENCE"],
+    "keywords": [
+      "spiritual", "meditation", "prayer", "bible", "quran",
+      "bhagavad gita", "bhajan", "mantra", "mandir", "temple",
+      "puja", "aarti", "hanuman chalisa", "yoga", "kundli",
+      "horoscope", "astrology", "rosary", "namaz", "zen",
+      "buddhism", "hinduism", "christianity", "islam", "sikh",
+      "gurbani", "devotional", "kirtan", "pooja", "vedic",
+      "spirituality", "chakra", "mindfulness", "om chanting"
+    ]
+  },
+  {
+    "id": "HEALTH_FITNESS",
+    "name": "Health & Fitness",
+    "genre_ids": ["HEALTH_AND_FITNESS"],
+    "keywords": [
+      "workout", "fitness", "running", "weight loss", "calorie tracker",
+      "step counter", "pedometer", "sleep tracker", "home workout", "abs workout",
+      "hiit", "stretching", "pilates", "cycling", "marathon training",
+      "intermittent fasting", "macro tracker", "water tracker", "yoga", "gym tracker",
+      "cardio", "strength training", "weight gain"
+    ]
+  },
+  {
+    "id": "EDUCATION",
+    "name": "Education",
+    "genre_ids": ["EDUCATION"],
+    "keywords": [
+      "learn english", "duolingo", "math practice", "kids learning", "alphabet",
+      "vocabulary", "spelling", "ssc", "neet", "jee",
+      "upsc", "ielts", "toefl", "gre prep", "cat exam",
+      "coding kids", "abcd kids", "preschool", "history quiz", "science quiz",
+      "study planner", "flashcards", "homework helper"
+    ]
+  },
+  {
+    "id": "FINANCE",
+    "name": "Finance",
+    "genre_ids": ["FINANCE"],
+    "keywords": [
+      "expense tracker", "budget app", "stock market", "trading app", "mutual funds",
+      "tax calculator", "loan emi", "personal finance", "credit score", "upi payments",
+      "crypto wallet", "bitcoin tracker", "investment", "sip calculator", "bank balance",
+      "savings goal", "money manager", "currency converter", "gst calculator", "financial planner",
+      "demat account", "options trading"
+    ]
+  },
+  {
+    "id": "PRODUCTIVITY",
+    "name": "Productivity",
+    "genre_ids": ["PRODUCTIVITY"],
+    "keywords": [
+      "todo list", "notes app", "task manager", "calendar", "habit tracker",
+      "pomodoro timer", "focus timer", "kanban", "scanner app", "pdf editor",
+      "document scanner", "voice recorder", "screen recorder", "file manager", "clipboard manager",
+      "password manager", "checklist", "mind map", "project management", "time tracking"
+    ]
+  },
+  {
+    "id": "BUSINESS",
+    "name": "Business",
+    "genre_ids": ["BUSINESS"],
+    "keywords": [
+      "invoice maker", "billing app", "small business", "inventory management", "pos system",
+      "salary slip", "payroll", "shop accounting", "udyam", "gst billing",
+      "khata book", "vyapar", "expense report", "crm", "sales tracker",
+      "order management", "appointment scheduler", "estimate maker", "freelancer invoice"
+    ]
+  },
+  {
+    "id": "FOOD_DRINK",
+    "name": "Food & Drink",
+    "genre_ids": ["FOOD_AND_DRINK"],
+    "keywords": [
+      "recipes", "indian recipes", "vegetarian recipes", "cooking", "meal planner",
+      "diet plan", "keto recipes", "healthy recipes", "baking", "cocktails",
+      "coffee", "wine app", "biryani", "chinese recipes", "diabetic recipes",
+      "low carb", "smoothies", "tiffin recipes", "kids recipes", "nutrition tracker"
+    ]
+  },
+  {
+    "id": "SHOPPING",
+    "name": "Shopping",
+    "genre_ids": ["SHOPPING"],
+    "keywords": [
+      "online shopping", "fashion shopping", "grocery", "deals", "coupons",
+      "price comparison", "barcode scanner", "wishlist", "second hand", "marketplace",
+      "thrift shopping", "saree shopping", "jewellery", "handicraft", "kids clothing",
+      "sneakers", "beauty products", "home decor shopping", "wholesale buy"
+    ]
+  },
+  {
+    "id": "TRAVEL_LOCAL",
+    "name": "Travel & Local",
+    "genre_ids": ["TRAVEL_AND_LOCAL"],
+    "keywords": [
+      "flight booking", "hotel booking", "trip planner", "travel guide", "metro map",
+      "bus booking", "train ticket", "irctc", "taxi booking", "currency exchange",
+      "language translator", "offline maps", "tourist guide", "city map", "trekking",
+      "homestay", "road trip", "visa application", "weekend getaway"
+    ]
+  },
+  {
+    "id": "PHOTOGRAPHY",
+    "name": "Photography",
+    "genre_ids": ["PHOTOGRAPHY"],
+    "keywords": [
+      "photo editor", "selfie camera", "beauty camera", "collage maker", "filters",
+      "background remover", "passport photo", "id photo", "photo enhancer", "blur background",
+      "ai photo", "old photo restore", "color photo", "watermark remover", "photo frames",
+      "instagram editor", "vintage camera", "raw photo", "panorama"
+    ]
+  },
+  {
+    "id": "MUSIC_AUDIO",
+    "name": "Music & Audio",
+    "genre_ids": ["MUSIC_AND_AUDIO"],
+    "keywords": [
+      "music player", "podcast", "ringtones", "mp3 player", "audio editor",
+      "guitar tuner", "metronome", "drum machine", "audiobook", "radio fm",
+      "lyrics finder", "karaoke", "music maker", "beat maker", "dj app",
+      "sound recorder", "white noise", "sleep sounds", "instrumental", "tabla"
+    ]
+  },
+  {
+    "id": "VIDEO_PLAYERS",
+    "name": "Video Players & Editors",
+    "genre_ids": ["VIDEO_PLAYERS"],
+    "keywords": [
+      "video editor", "video player", "reels editor", "short video", "video maker",
+      "video trimmer", "video to mp3", "slideshow maker", "intro maker", "subtitle editor",
+      "video compressor", "screen recorder", "video downloader", "video collage", "vlog editor",
+      "stop motion", "green screen", "split screen video"
+    ]
+  },
+  {
+    "id": "BOOKS_REFERENCE",
+    "name": "Books & Reference",
+    "genre_ids": ["BOOKS_AND_REFERENCE"],
+    "keywords": [
+      "ebook reader", "kindle", "dictionary", "thesaurus", "encyclopedia",
+      "audiobooks", "wikipedia offline", "comic reader", "manga reader", "english dictionary",
+      "hindi dictionary", "urdu dictionary", "story books", "kids stories", "fiction reader",
+      "scientific reference", "law books", "constitution"
+    ]
+  },
+  {
+    "id": "PARENTING",
+    "name": "Parenting",
+    "genre_ids": ["PARENTING"],
+    "keywords": [
+      "baby tracker", "pregnancy tracker", "ovulation calculator", "baby names", "parenting tips",
+      "baby food", "kids learning", "preschool", "child safety", "newborn",
+      "feeding tracker", "kids reward", "potty training", "sleep training baby", "parental control",
+      "family planner"
+    ]
+  },
+  {
+    "id": "DATING",
+    "name": "Dating",
+    "genre_ids": ["DATING"],
+    "keywords": [
+      "dating app", "matrimony", "marriage app", "indian matrimony", "muslim marriage",
+      "hindu marriage", "christian marriage", "sikh marriage", "shadi", "rishta",
+      "love chat", "find partner", "single dating", "lgbt dating", "casual dating",
+      "long distance dating"
+    ]
+  },
+  {
+    "id": "DATING_FAMILY_MATRIMONY",
+    "name": "Matrimony & Family",
+    "genre_ids": ["DATING", "SOCIAL"],
+    "keywords": [
+      "shaadi", "jeevansathi", "matrimonial site", "rishtey", "biodata maker",
+      "family tree", "ancestry", "wedding planner", "kundli matching", "horoscope match",
+      "wedding invitation"
+    ]
+  },
+  {
+    "id": "SOCIAL",
+    "name": "Social",
+    "genre_ids": ["SOCIAL"],
+    "keywords": [
+      "chat app", "video call", "voice call", "anonymous chat", "live stream",
+      "social network", "indian chat", "regional chat", "stranger chat", "community app",
+      "voice room", "audio chat", "fan club", "private messaging", "group chat",
+      "friends finder"
+    ]
+  },
+  {
+    "id": "COMMUNICATION",
+    "name": "Communication",
+    "genre_ids": ["COMMUNICATION"],
+    "keywords": [
+      "sms backup", "call recorder", "true caller", "spam blocker", "second number",
+      "international call", "wifi calling", "voicemail", "email client", "fax app",
+      "messenger lite", "encrypted chat", "team messaging", "walkie talkie"
+    ]
+  },
+  {
+    "id": "PERSONALIZATION",
+    "name": "Personalization",
+    "genre_ids": ["PERSONALIZATION"],
+    "keywords": [
+      "wallpaper", "live wallpaper", "themes", "icon pack", "launcher",
+      "lock screen", "ringtone maker", "keyboard themes", "widgets", "emoji keyboard",
+      "fonts", "stickers maker", "boot animation", "always on display"
+    ]
+  },
+  {
+    "id": "TOOLS",
+    "name": "Tools",
+    "genre_ids": ["TOOLS"],
+    "keywords": [
+      "calculator", "compass", "flashlight", "qr scanner", "unit converter",
+      "ruler", "level tool", "magnifier", "speed test", "vpn",
+      "ad blocker", "wifi analyzer", "battery saver", "phone cleaner", "ram booster",
+      "ip scanner", "network tools", "uninstaller"
+    ]
+  },
+  {
+    "id": "MAPS_NAVIGATION",
+    "name": "Maps & Navigation",
+    "genre_ids": ["MAPS_AND_NAVIGATION"],
+    "keywords": [
+      "gps navigation", "offline maps", "speedometer", "compass map", "route planner",
+      "bike route", "trail map", "indoor map", "city navigation", "fuel calculator",
+      "live traffic", "metro navigation", "mileage tracker", "find my phone", "share location"
+    ]
+  },
+  {
+    "id": "WEATHER",
+    "name": "Weather",
+    "genre_ids": ["WEATHER"],
+    "keywords": [
+      "weather forecast", "rain alert", "storm tracker", "weather widget", "live weather",
+      "monsoon forecast", "weather radar", "humidity tracker", "weather alerts", "uv index",
+      "air quality", "pollen forecast", "snow forecast", "tides forecast", "lightning tracker"
+    ]
+  },
+  {
+    "id": "MEDICAL",
+    "name": "Medical",
+    "genre_ids": ["MEDICAL"],
+    "keywords": [
+      "doctor consultation", "medicine reminder", "blood pressure", "diabetes tracker", "pregnancy",
+      "first aid", "symptom checker", "anatomy 3d", "drug reference", "icd 10",
+      "telemedicine", "ehr", "patient records", "vaccination tracker", "ayurveda",
+      "homeopathy", "fertility tracker"
+    ]
+  },
+  {
+    "id": "NEWS_MAGAZINES",
+    "name": "News & Magazines",
+    "genre_ids": ["NEWS_AND_MAGAZINES"],
+    "keywords": [
+      "news app", "indian news", "hindi news", "regional news", "breaking news",
+      "business news", "stock news", "sports news", "tech news", "magazine reader",
+      "podcast news", "newsletter", "rss reader", "fact check", "election news",
+      "weather news", "local news"
+    ]
+  },
+  {
+    "id": "SPORTS",
+    "name": "Sports",
+    "genre_ids": ["SPORTS"],
+    "keywords": [
+      "cricket score", "football live", "ipl", "fantasy cricket", "kabaddi",
+      "tennis live", "f1 live", "wwe", "olympics", "sports news",
+      "sports betting", "match prediction", "team manager", "fantasy football", "score keeper",
+      "sports trivia"
+    ]
+  },
+  {
+    "id": "ENTERTAINMENT",
+    "name": "Entertainment",
+    "genre_ids": ["ENTERTAINMENT"],
+    "keywords": [
+      "ott app", "live tv", "movie streaming", "tv shows", "kids cartoons",
+      "comedy clips", "memes", "celebrity gossip", "telugu movies", "tamil movies",
+      "punjabi movies", "bollywood", "anime streaming", "korean drama", "trivia game",
+      "magic tricks", "ringtone show"
+    ]
+  },
+  {
+    "id": "EVENTS",
+    "name": "Events",
+    "genre_ids": ["EVENTS"],
+    "keywords": [
+      "event tickets", "concert tickets", "music festival", "comedy show", "wedding events",
+      "meetup", "conference app", "expo guide", "religious events", "live event",
+      "event organizer", "rsvp app"
+    ]
+  },
+  {
+    "id": "HOUSE_HOME",
+    "name": "House & Home",
+    "genre_ids": ["HOUSE_AND_HOME"],
+    "keywords": [
+      "home design", "interior design", "house plans", "rent app", "real estate",
+      "home decor", "room planner", "kitchen design", "feng shui home", "vastu home",
+      "home cleaning", "smart home", "home repair", "renovation calculator", "buy property",
+      "rental search"
+    ]
+  },
+  {
+    "id": "AUTO_VEHICLES",
+    "name": "Auto & Vehicles",
+    "genre_ids": ["AUTO_AND_VEHICLES"],
+    "keywords": [
+      "car maintenance", "fuel tracker", "obd2", "vehicle info", "rto info",
+      "driving license", "challan check", "car parking", "bike service", "ev charging",
+      "tyre pressure", "auto news", "car dealer", "second hand car", "dashcam"
+    ]
+  },
+  {
+    "id": "BEAUTY",
+    "name": "Beauty",
+    "genre_ids": ["BEAUTY"],
+    "keywords": [
+      "makeup tutorial", "hairstyle", "skin care", "beauty tips", "salon booking",
+      "nail art", "mehendi designs", "saree draping", "fashion tips", "outfit planner",
+      "wedding makeup", "kids hairstyles", "ayurveda beauty", "skin analyzer", "virtual makeup"
+    ]
+  },
+  {
+    "id": "ART_DESIGN",
+    "name": "Art & Design",
+    "genre_ids": ["ART_AND_DESIGN"],
+    "keywords": [
+      "drawing app", "sketch", "coloring book", "logo maker", "graphic design",
+      "poster maker", "thumbnail maker", "calligraphy", "rangoli designs", "mandala art",
+      "tattoo designs", "3d modeling", "doodle", "pencil sketch", "anime drawing",
+      "ai art generator"
+    ]
+  },
+  {
+    "id": "COMICS",
+    "name": "Comics",
+    "genre_ids": ["COMICS"],
+    "keywords": [
+      "manga reader", "webtoon", "comic reader", "indian comics", "marvel comics",
+      "dc comics", "anime manga", "comic creator", "comic strips", "manhua",
+      "manhwa", "kids comics", "religious comics"
+    ]
+  },
+  {
+    "id": "LIFESTYLE",
+    "name": "Lifestyle (general)",
+    "genre_ids": ["LIFESTYLE"],
+    "keywords": [
+      "horoscope", "tarot", "feng shui", "vastu", "fashion outfit",
+      "wedding planner", "lifestyle blog", "travel diary", "life coach", "self improvement",
+      "personal development", "journaling", "gratitude"
+    ]
+  }
+]

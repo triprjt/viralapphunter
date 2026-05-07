@@ -1,0 +1,20 @@
+apify:
+  actor_id: "epctex/google-play-scraper"
+  token_env: REDACTED_TOKEN
+
+apps:
+  - com.whatsapp
+  - com.pilav.kismet
+  - com.mandir
+
+filters:
+  country: us
+  language: en
+  sort: newest               # newest | rating | helpful
+  min_rating: 1
+  max_rating: 5
+  since: "2025-01-01"        # ISO date; null to disable
+  max_reviews_per_app: 5000
+
+output:
+  db_path: reviews.db

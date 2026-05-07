@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ViralFinder — Find your next viral app idea</title>
+  <meta name="description" content="Creator-priced Google Play intelligence. Velocity-ranked app discovery, niche saturation maps, and AI gap reports — for $29 instead of $40K." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #FFFCF5;
+      --bg-pure: #FFFFFF;
+      --text: #0F172A;
+      --muted: #64748B;
+      --border: #E5E7EB;
+      --soft-gray: #F1F5F9;
+      --mint: #06D6A0;
+      --mint-deep: #04B587;
+      --coral: #FF6B6B;
+      --coral-deep: #F04848;
+      --sunshine: #FFD23F;
+      --violet: #7C3AED;
+      --violet-soft: #A78BFA;
+      --ink: #0B1220;
+      --peach: #FFE8D6;
+      --bad: #EF4444;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 16px/1.6 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: var(--violet); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---- Nav ---- */
+    nav { position: sticky; top: 0; z-index: 50; background: rgba(255, 252, 245, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    nav.scrolled { border-bottom-color: var(--border); }
+    .nav-row { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; }
+    .brand { font-weight: 900; font-size: 22px; letter-spacing: -0.02em; color: var(--ink); }
+    .brand .accent { background: linear-gradient(135deg, var(--coral), var(--violet) 60%, var(--mint)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { color: var(--muted); font-weight: 500; font-size: 14px; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-cta { display: flex; gap: 12px; align-items: center; }
+
+    /* ---- Live ticker (F1) ---- */
+    .live-ticker { background: var(--peach); padding: 9px 32px; overflow: hidden; border-bottom: 1px solid rgba(0,0,0,0.04); font-size: 13px; color: var(--ink); position: relative; }
+    .live-ticker-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+    .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--coral); animation: pulse 1.5s infinite; flex-shrink: 0; }
+    .live-tag { font-weight: 800; letter-spacing: 0.04em; color: var(--coral); flex-shrink: 0; }
+    .live-msg { transition: opacity 0.4s; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .live-msg b { font-weight: 800; color: var(--ink); }
+    .live-msg i { font-style: normal; color: var(--mint-deep); font-weight: 700; }
+
+    /* ---- Buttons ---- */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 999px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
+    .btn:hover { text-decoration: none; transform: translateY(-1px); }
+    .btn-primary { background: var(--coral); color: #fff; box-shadow: 0 4px 14px rgba(255, 107, 107, 0.35); }
+    .btn-primary:hover { background: var(--coral-deep); box-shadow: 0 6px 20px rgba(255, 107, 107, 0.45); color: #fff; }
+    .btn-ghost { color: var(--text); background: transparent; }
+    .btn-ghost:hover { background: rgba(15,23,42,0.06); }
+    .btn-large { padding: 16px 28px; font-size: 16px; }
+    .btn-light { background: #fff; color: var(--ink); }
+    .btn-light:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.18); color: var(--ink); }
+
+    /* ---- Layout ---- */
+    section { padding: 96px 32px; max-width: 1200px; margin: 0 auto; position: relative; }
+    .full-bleed { max-width: none; padding: 96px 32px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+
+    /* ---- Hero ---- */
+    .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; padding-top: 56px; padding-bottom: 64px; }
+    .hero-text { z-index: 2; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--sunshine); border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 20px; }
+    .badge .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.6; } }
+    .hero h1 { font-size: 64px; line-height: 1.02; font-weight: 900; letter-spacing: -0.03em; margin: 0 0 20px; color: var(--ink); }
+    .hero h1 .gradient { background: linear-gradient(120deg, var(--coral) 0%, var(--violet) 50%, var(--mint) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero .lede { font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 540px; margin: 0 0 28px; }
+    .cta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+    .fineprint { color: var(--muted); font-size: 13px; margin-top: 14px; }
+
+    /* Hero mockup with blobs */
+    .hero-visual { position: relative; height: 520px; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; pointer-events: none; }
+    .blob-mint { background: var(--mint); width: 320px; height: 320px; top: 20px; right: 40px; }
+    .blob-violet { background: var(--violet-soft); width: 260px; height: 260px; bottom: 60px; left: -20px; }
+    .blob-coral { background: var(--coral); width: 200px; height: 200px; top: 200px; left: 100px; opacity: 0.35; }
+    .laptop-mock { position: absolute; top: 40px; right: 0; width: 560px; max-width: 100%; background: var(--ink); border-radius: 18px 18px 6px 6px; padding: 14px 14px 0; box-shadow: 0 30px 60px rgba(11, 18, 32, 0.25); }
+    .laptop-mock::after { content: ''; position: absolute; bottom: -12px; left: -8%; width: 116%; height: 14px; background: linear-gradient(180deg, #2A3142, #11151F); border-radius: 0 0 16px 16px; }
+    .laptop-screen { background: var(--bg); border-radius: 8px 8px 0 0; padding: 10px; min-height: 320px; font-size: 11px; }
+    .mock-row { display: grid; grid-template-columns: 36px 1fr auto auto; gap: 10px; align-items: center; padding: 8px; border-radius: 6px; margin-bottom: 4px; }
+    .mock-row.header { background: transparent; padding: 6px 8px; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .mock-row .icon-sq { width: 32px; height: 32px; background: linear-gradient(135deg, var(--coral), var(--sunshine)); border-radius: 7px; }
+    .mock-row .icon-sq.b { background: linear-gradient(135deg, var(--violet), var(--mint)); }
+    .mock-row .icon-sq.c { background: linear-gradient(135deg, var(--mint), var(--sunshine)); }
+    .mock-row .icon-sq.d { background: linear-gradient(135deg, var(--violet-soft), var(--coral)); }
+    .mock-row .title { font-weight: 700; font-size: 12px; color: var(--ink); }
+    .mock-row .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .mock-row .score { background: var(--sunshine); color: var(--ink); font-weight: 800; padding: 4px 10px; border-radius: 999px; font-size: 11px; }
+    .mock-row .ipm { color: var(--mint-deep); font-weight: 700; font-size: 11px; }
+    .phone-mock { position: absolute; bottom: 0; left: 50px; width: 200px; background: var(--ink); border-radius: 22px; padding: 10px; box-shadow: 0 20px 40px rgba(11, 18, 32, 0.3); border: 4px solid var(--ink); z-index: 3; }
+    .phone-screen { background: var(--bg); border-radius: 12px; padding: 14px 12px; }
+    .phone-screen h4 { margin: 0 0 8px; font-size: 11px; font-weight: 800; color: var(--ink); }
+    .phone-pill { display: inline-block; background: var(--peach); color: var(--ink); padding: 3px 8px; border-radius: 999px; font-size: 9px; font-weight: 600; margin: 2px 2px 0 0; }
+    .phone-pill.hot { background: var(--coral); color: #fff; }
+    .phone-pill.cool { background: var(--mint); color: var(--ink); }
+    .phone-pill.warm { background: var(--violet); color: #fff; }
+
+    /* ---- Top Gaps section ---- */
+    .gaps { background: linear-gradient(180deg, var(--bg) 0%, var(--peach) 100%); padding: 88px 32px; position: relative; overflow: hidden; }
+    .gaps-inner { max-width: 1200px; margin: 0 auto; }
+    .gaps-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18; pointer-events: none; }
+    .gaps-blob.a { background: var(--coral); width: 260px; height: 260px; top: -40px; left: 8%; }
+    .gaps-blob.b { background: var(--mint); width: 220px; height: 220px; top: 50%; right: 10%; }
+    .gaps-blob.c { background: var(--violet); width: 200px; height: 200px; bottom: -40px; left: 40%; }
+    .gaps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; position: relative; }
+    .gap-card { background: var(--bg-pure); border: 1px solid var(--border); border-radius: 22px; padding: 24px; position: relative; transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s; }
+    .gap-card:hover { transform: translateY(-4px); border-color: var(--coral); box-shadow: 0 16px 40px rgba(255, 107, 107, 0.12); }
+    .urgency-tag { position: absolute; top: -10px; right: 16px; background: var(--sunshine); color: var(--ink); font-size: 11px; font-weight: 800; padding: 5px 11px; border-radius: 999px; letter-spacing: 0.02em; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    .gap-icon { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 14px; }
+    .gap-icon.a { background: linear-gradient(135deg, var(--coral), var(--sunshine)); }
+    .gap-icon.b { background: linear-gradient(135deg, var(--violet), var(--mint)); }
+    .gap-icon.c { background: linear-gradient(135deg, var(--mint), var(--sunshine)); }
+    .gap-name { font-size: 18px; font-weight: 900; letter-spacing: -0.01em; margin: 0 0 4px; }
+    .gap-meta { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+    .gap-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; background: var(--soft-gray); border-radius: 12px; margin-bottom: 14px; }
+    .gap-stat { text-align: center; }
+    .gap-stat b { display: block; font-size: 16px; font-weight: 900; color: var(--ink); letter-spacing: -0.01em; }
+    .gap-stat span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .gap-stat .down { color: var(--bad); }
+    .gap-stat .up { color: var(--mint-deep); }
+    .pull-quote { border-left: 3px solid var(--coral); padding: 4px 0 4px 14px; font-style: italic; color: var(--text); margin: 0 0 16px; line-height: 1.55; font-size: 14px; }
+    .gap-build { background: var(--coral); color: #fff; padding: 9px 14px; border-radius: 999px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+
+    /* ---- Builders strip (F2) ---- */
+    .builders { background: var(--ink); color: #fff; padding: 64px 32px; }
+    .builders-inner { max-width: 1200px; margin: 0 auto; }
+    .builders-head { text-align: center; margin-bottom: 36px; }
+    .builders-head h3 { font-size: 32px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 8px; color: #fff; }
+    .builders-head h3 b { color: var(--mint); }
+    .builders-head p { color: rgba(255,255,255,0.7); font-size: 15px; margin: 0; }
+    .builders-head p b { color: var(--sunshine); }
+    .builders-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .builder-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; }
+    .builder-card .who { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .builder-card .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--coral), var(--violet)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
+    .builder-card .avatar.b { background: linear-gradient(135deg, var(--mint), var(--sunshine)); color: var(--ink); }
+    .builder-card .avatar.c { background: linear-gradient(135deg, var(--violet), var(--mint)); }
+    .builder-card .avatar.d { background: linear-gradient(135deg, var(--sunshine), var(--coral)); color: var(--ink); }
+    .builder-card .name { font-size: 13px; font-weight: 700; }
+    .builder-card .city { font-size: 11px; color: rgba(255,255,255,0.6); }
+    .builder-card .what { font-size: 13px; line-height: 1.4; color: rgba(255,255,255,0.85); margin: 0 0 10px; }
+    .builder-card .num { font-size: 12px; color: var(--mint); font-weight: 700; }
+
+    /* ---- Niche Marquee (replaces fake-press logo bar) ---- */
+    .marquee { background: var(--mint); padding: 48px 0 56px; overflow: hidden; position: relative; }
+    .marquee-cap { text-align: center; color: var(--ink); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 22px; opacity: 0.7; padding: 0 32px; }
+    .marquee-cap b { font-weight: 900; opacity: 1; }
+    .marquee-track { display: flex; gap: 12px; width: max-content; animation: marquee-scroll 80s linear infinite; }
+    .marquee:hover .marquee-track { animation-play-state: paused; }
+    .marquee-pill { flex-shrink: 0; background: #fff; color: var(--ink); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; white-space: nowrap; border: 1px solid rgba(0,0,0,0.06); transition: transform 0.15s; }
+    .marquee-pill:hover { transform: translateY(-2px); }
+    .marquee-pill.alt-sun { background: var(--sunshine); }
+    .marquee-pill.alt-peach { background: var(--peach); }
+    .marquee-pill.alt-ink { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .marquee-pill .em { margin-right: 6px; }
+    @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee::before, .marquee::after { content: ''; position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none; }
+    .marquee::before { left: 0; background: linear-gradient(90deg, var(--mint), transparent); }
+    .marquee::after { right: 0; background: linear-gradient(270deg, var(--mint), transparent); }
+
+    /* ---- How it works ---- */
+    .how { background: var(--bg); padding: 96px 0; margin-top: 0; }
+    .how-inner { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+    .section-head { text-align: center; max-width: 700px; margin: 0 auto 56px; }
+    .section-head .eyebrow { display: inline-block; padding: 4px 14px; background: var(--bg-pure); border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--violet); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+    .section-head h2 { font-size: 44px; line-height: 1.1; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 16px; }
+    .section-head p { font-size: 18px; color: var(--muted); margin: 0; line-height: 1.55; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .step { background: var(--bg-pure); border-radius: 20px; padding: 32px 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.04); }
+    .step-num { display: inline-block; padding: 4px 12px; background: var(--ink); color: var(--bg-pure); border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 20px; }
+    .step-icon { width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .step-icon svg { width: 32px; height: 32px; }
+    .step-icon.mint { background: rgba(6, 214, 160, 0.15); }
+    .step-icon.coral { background: rgba(255, 107, 107, 0.15); }
+    .step-icon.violet { background: rgba(124, 58, 237, 0.15); }
+    .step h3 { font-size: 20px; font-weight: 800; margin: 0 0 10px; letter-spacing: -0.01em; }
+    .step p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0; }
+
+    /* ---- Versus block (F3) ---- */
+    .versus { background: var(--soft-gray); padding: 88px 32px; }
+    .versus-inner { max-width: 1100px; margin: 0 auto; }
+    .versus-head { text-align: center; margin-bottom: 48px; }
+    .versus-head h2 { font-size: 40px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 12px; }
+    .versus-head p { font-size: 16px; color: var(--muted); margin: 0; }
+    .versus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .versus-col { background: var(--bg-pure); border-radius: 20px; padding: 32px; }
+    .versus-col.bad { background: #FBE9E9; border: 1px solid #F0C5C5; }
+    .versus-col.good { background: #E5FBF3; border: 1px solid #A0E8C8; }
+    .versus-col h3 { font-size: 20px; font-weight: 900; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .versus-col .sub { font-size: 13px; color: var(--muted); margin: 0 0 20px; font-weight: 500; }
+    .versus-col ul { list-style: none; padding: 0; margin: 0 0 20px; font-size: 15px; line-height: 1.8; }
+    .versus-col ul li { display: flex; gap: 10px; align-items: flex-start; padding: 4px 0; }
+    .versus-col ul li::before { font-weight: 900; flex-shrink: 0; margin-top: 1px; }
+    .versus-col.bad ul li::before { content: "❌"; }
+    .versus-col.good ul li::before { content: "✓"; color: var(--mint-deep); font-size: 18px; }
+    .versus-col .median { font-size: 15px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08); }
+    .versus-col .median b { font-weight: 900; }
+    .versus-col.bad .median b { color: var(--bad); }
+    .versus-col.good .median b { color: var(--mint-deep); }
+    .versus-bottom { text-align: center; margin-top: 36px; font-size: 18px; font-weight: 700; color: var(--ink); }
+    .versus-bottom span { color: var(--coral-deep); }
+
+    /* ---- Feature rows ---- */
+    .feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; padding: 80px 0; position: relative; }
+    .feature-row.reverse .ftr-text { order: 2; }
+    .feature-row.reverse .ftr-visual { order: 1; }
+    .ftr-text .eyebrow { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+    .ftr-text .eyebrow.mint { background: rgba(6, 214, 160, 0.15); color: var(--mint-deep); }
+    .ftr-text .eyebrow.violet { background: rgba(124, 58, 237, 0.15); color: var(--violet); }
+    .ftr-text .eyebrow.coral { background: rgba(255, 107, 107, 0.15); color: var(--coral-deep); }
+    .ftr-text h2 { font-size: 40px; line-height: 1.1; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 18px; }
+    .ftr-text p { font-size: 17px; color: var(--muted); line-height: 1.65; margin: 0 0 22px; }
+    .ftr-text .arrow-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); }
+    .ftr-text .arrow-link:hover { gap: 10px; text-decoration: none; }
+
+    .ftr-visual { position: relative; min-height: 380px; }
+    .ftr-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; pointer-events: none; z-index: 0; }
+    .ftr-card { position: relative; background: var(--bg-pure); border-radius: 18px; padding: 24px; box-shadow: 0 16px 40px rgba(11, 18, 32, 0.08); border: 1px solid var(--border); z-index: 1; }
+    .ftr-card-header { display: flex; align-items: center; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+    .ftr-card-header .dots { display: flex; gap: 6px; }
+    .ftr-card-header .dots span { width: 10px; height: 10px; border-radius: 50%; }
+    .ftr-card-header .dots span:nth-child(1) { background: var(--coral); }
+    .ftr-card-header .dots span:nth-child(2) { background: var(--sunshine); }
+    .ftr-card-header .dots span:nth-child(3) { background: var(--mint); }
+    .ftr-card-header .ftr-card-title { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+    /* AI panel mock */
+    .ai-msg { background: var(--peach); padding: 12px 16px; border-radius: 16px 16px 16px 4px; margin-bottom: 12px; font-size: 13px; line-height: 1.5; max-width: 85%; }
+    .ai-resp { background: var(--ink); color: var(--bg-pure); padding: 14px 16px; border-radius: 16px 16px 4px 16px; margin-left: auto; margin-bottom: 12px; font-size: 13px; line-height: 1.5; max-width: 95%; }
+    .ai-resp h5 { margin: 0 0 6px; font-size: 12px; color: var(--mint); font-weight: 700; }
+    .ai-resp ul { margin: 0; padding-left: 18px; }
+    .ai-typing { color: var(--violet); font-weight: 700; font-size: 13px; }
+
+    /* Niche table mock */
+    .niche-row { display: grid; grid-template-columns: 1fr 60px 80px; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; font-size: 13px; }
+    .niche-row:last-child { border-bottom: none; }
+    .niche-row .opp { font-weight: 800; padding: 3px 9px; border-radius: 999px; font-size: 11px; text-align: center; }
+    .niche-row .opp.high { background: var(--mint); color: var(--ink); }
+    .niche-row .opp.med { background: var(--sunshine); color: var(--ink); }
+    .niche-row .opp.low { background: var(--peach); color: var(--ink); }
+    .niche-name { font-weight: 700; }
+    .niche-meta { font-size: 11px; color: var(--muted); }
+
+    /* ---- Testimonial slab ---- */
+    .testimonial { background: var(--ink); color: #fff; padding: 96px 32px; }
+    .test-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1.6fr 1fr; gap: 48px; align-items: center; }
+    .test-quote { font-size: 26px; line-height: 1.4; font-weight: 500; letter-spacing: -0.005em; font-style: italic; margin: 0 0 24px; }
+    .test-quote b { font-style: normal; font-weight: 800; color: var(--mint); }
+    .test-author { color: var(--mint); font-weight: 700; font-size: 14px; }
+    .test-logo { font-size: 56px; font-weight: 900; color: var(--mint); letter-spacing: -0.04em; text-align: center; line-height: 0.9; }
+    .test-dots { display: flex; gap: 8px; margin-top: 24px; }
+    .test-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.25); cursor: pointer; transition: background 0.2s; }
+    .test-dots span.active { background: var(--mint); }
+
+    /* ---- Pricing ---- */
+    .pricing { padding: 96px 32px 64px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 1200px; margin: 0 auto; }
+    .price { background: var(--bg-pure); border: 1px solid var(--border); border-radius: 20px; padding: 32px 24px; transition: transform 0.15s, box-shadow 0.15s; }
+    .price:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(11, 18, 32, 0.08); }
+    .price.featured { border: 2px solid var(--coral); position: relative; transform: scale(1.04); }
+    .price.featured::before { content: 'MOST POPULAR'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--coral); color: #fff; font-size: 10px; font-weight: 800; padding: 5px 14px; border-radius: 999px; letter-spacing: 0.08em; }
+    .price h4 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .price .amount { font-size: 40px; font-weight: 900; letter-spacing: -0.03em; margin: 4px 0 16px; color: var(--ink); }
+    .price .amount span { font-size: 16px; color: var(--muted); font-weight: 500; }
+    .price ul { list-style: none; padding: 0; margin: 16px 0 24px; font-size: 14px; }
+    .price ul li { padding: 6px 0; color: var(--text); display: flex; gap: 8px; align-items: flex-start; }
+    .price ul li::before { content: ""; width: 16px; height: 16px; background: var(--mint); border-radius: 50%; flex-shrink: 0; margin-top: 4px; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>"); background-size: 10px; background-position: center; background-repeat: no-repeat; }
+    .price .btn { width: 100%; }
+
+    /* ---- Final CTA ---- */
+    .final-cta { padding: 96px 32px; background: linear-gradient(120deg, rgba(255,107,107,0.85) 0%, rgba(124,58,237,0.85) 50%, rgba(6,214,160,0.85) 100%); text-align: center; color: #fff; position: relative; overflow: hidden; }
+    .final-cta::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 50%); pointer-events: none; }
+    .fomo-banner { display: inline-block; background: rgba(255,255,255,0.18); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.3); padding: 8px 18px; border-radius: 999px; font-size: 13px; margin-bottom: 22px; font-weight: 600; }
+    .fomo-banner b { font-weight: 800; }
+    .final-cta h2 { font-size: 52px; line-height: 1.05; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 18px; }
+    .final-cta p { font-size: 18px; opacity: 0.95; max-width: 540px; margin: 0 auto 32px; }
+    .final-cta .btn-light { font-size: 17px; padding: 18px 32px; }
+
+    /* ---- Footer ---- */
+    footer { background: var(--bg-pure); padding: 56px 32px 32px; border-top: 1px solid var(--border); }
+    .foot-row { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 32px; }
+    .foot-brand { font-weight: 900; font-size: 22px; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .foot-brand .accent { background: linear-gradient(135deg, var(--coral), var(--violet) 60%, var(--mint)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .foot-row p { color: var(--muted); font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
+    .foot-row h5 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink); margin: 0 0 12px; }
+    .foot-row ul { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+    .foot-row ul li { padding: 4px 0; }
+    .foot-row ul li a { color: var(--muted); }
+    .foot-row ul li a:hover { color: var(--text); text-decoration: none; }
+    .newsletter-form { display: flex; gap: 8px; margin-top: 8px; }
+    .newsletter-form input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 13px; background: var(--bg); }
+    .newsletter-form input:focus { outline: 2px solid var(--violet); outline-offset: -1px; border-color: transparent; }
+    .newsletter-form button { padding: 10px 18px; border-radius: 999px; background: var(--ink); color: #fff; border: none; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .newsletter-form button:hover { background: var(--violet); }
+    .foot-bottom { max-width: 1200px; margin: 32px auto 0; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 13px; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-visual { height: 420px; margin-top: 24px; }
+      .hero h1 { font-size: 44px; }
+      .gaps-grid { grid-template-columns: 1fr; }
+      .builders-grid { grid-template-columns: 1fr 1fr; }
+      .versus-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .feature-row { grid-template-columns: 1fr; gap: 32px; padding: 56px 0; }
+      .feature-row.reverse .ftr-text { order: 1; }
+      .feature-row.reverse .ftr-visual { order: 2; }
+      .test-inner { grid-template-columns: 1fr; gap: 24px; text-align: center; }
+      .test-logo { text-align: center; }
+      .pricing-grid { grid-template-columns: 1fr 1fr; }
+      .price.featured { transform: none; }
+      .nav-links { display: none; }
+      .foot-row { grid-template-columns: 1fr 1fr; }
+      .final-cta h2 { font-size: 36px; }
+      .section-head h2 { font-size: 32px; }
+      .ftr-text h2 { font-size: 30px; }
+      .versus-head h2 { font-size: 30px; }
+    }
+    @media (max-width: 540px) {
+      section { padding: 64px 20px; }
+      .builders-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .foot-row { grid-template-columns: 1fr; }
+      .live-ticker { padding: 8px 16px; font-size: 12px; }
+      .live-tag { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav id="nav">
+  <div class="nav-row">
+    <div class="brand">Viral<span class="accent">Finder</span></div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/auth/google/start" class="btn btn-ghost">Sign in</a>
+      <a href="/auth/google/start" class="btn btn-primary">Get started free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ LIVE TICKER (F1) ============ -->
+<div class="live-ticker">
+  <div class="live-ticker-inner">
+    <span class="live-dot"></span>
+    <span class="live-tag">LIVE</span>
+    <span class="live-msg" id="ticker-msg">Marc shipped a Polish recipe app for German diaspora · <i>22K downloads · $640 MRR</i> · 6 weeks ago</span>
+  </div>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-text">
+    <span class="badge"><span class="pulse"></span>10,172 apps tracked across 33 categories all over the world</span>
+    <h1>Find your next <span class="gradient">viral app</span> idea before everyone else.</h1>
+    <p class="lede">Velocity-ranked app discovery, niche-saturation maps, and AI-powered gap reports — for any creator or founder anywhere in the world. Stop guessing. Solve what already sells.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary btn-large" href="/auth/google/start">Get started — it's free →</a>
+      <a class="btn btn-ghost btn-large" href="#how">See how it works</a>
+    </div>
+    <div class="fineprint">No credit card required · Free tier: 5 categories · 33 categories total</div>
+  </div>
+  <div class="hero-visual">
+    <div class="blob blob-mint"></div>
+    <div class="blob blob-violet"></div>
+    <div class="blob blob-coral"></div>
+    <!-- laptop mock -->
+    <div class="laptop-mock">
+      <div class="laptop-screen">
+        <div class="mock-row header">
+          <span></span><span>App</span><span>installs/mo</span><span>viral</span>
+        </div>
+        <div class="mock-row">
+          <div class="icon-sq"></div>
+          <div><div class="title">TinyFlow — Kids Yoga</div><div class="sub">Health · 4 mo old · 4.4★</div></div>
+          <span class="ipm">700K</span>
+          <span class="score">24.1</span>
+        </div>
+        <div class="mock-row">
+          <div class="icon-sq b"></div>
+          <div><div class="title">ReggaeKaraoke (Latin)</div><div class="sub">Music · 5 mo old · 4.3★</div></div>
+          <span class="ipm">360K</span>
+          <span class="score">21.7</span>
+        </div>
+        <div class="mock-row">
+          <div class="icon-sq c"></div>
+          <div><div class="title">DramaList — K-Drama Tracker</div><div class="sub">Entertainment · 4 mo old · 4.6★</div></div>
+          <span class="ipm">200K</span>
+          <span class="score">22.4</span>
+        </div>
+        <div class="mock-row">
+          <div class="icon-sq d"></div>
+          <div><div class="title">OFW Money — Filipino Remit</div><div class="sub">Finance · 7 mo old · 4.5★</div></div>
+          <span class="ipm">220K</span>
+          <span class="score">22.9</span>
+        </div>
+      </div>
+    </div>
+    <!-- phone mock floating in front -->
+    <div class="phone-mock">
+      <div class="phone-screen">
+        <h4>📈 Best-opportunity niches</h4>
+        <span class="phone-pill cool">kids yoga</span>
+        <span class="phone-pill warm">reggaeton karaoke</span>
+        <span class="phone-pill cool">k-drama tracker</span>
+        <span class="phone-pill hot">OFW remit</span>
+        <span class="phone-pill">spanish bedtime</span>
+        <span class="phone-pill warm">hindi voice notes</span>
+        <span class="phone-pill cool">turkish budget</span>
+        <span class="phone-pill">vietnamese astrology</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TOP GAPS (NEW) ============ -->
+<div class="gaps">
+  <div class="gaps-blob a"></div>
+  <div class="gaps-blob b"></div>
+  <div class="gaps-blob c"></div>
+  <div class="gaps-inner">
+    <div class="section-head" style="margin-bottom: 40px">
+      <span class="eyebrow" style="background:var(--sunshine);color:var(--ink)">🎯 LIVE GAPS</span>
+      <h2>Three apps. Three gaps. Built next?</h2>
+      <p>Real Google Play data. Real complaints. Real opportunities — no fluff, no analyst team needed.</p>
+    </div>
+    <div class="gaps-grid">
+
+      <!-- Card 1: Kids Yoga -->
+      <div class="gap-card">
+        <span class="urgency-tag">🔥 First mover wins</span>
+        <div class="gap-icon a"></div>
+        <h3 class="gap-name">TinyFlow — Kids Yoga</h3>
+        <div class="gap-meta">Health & Fitness · 4 mo old · global parents</div>
+        <div class="gap-stats">
+          <div class="gap-stat"><b>2.8M</b><span>downloads</span></div>
+          <div class="gap-stat"><b>4.4 <span class="down">↓4.0</span></b><span>recent ★</span></div>
+          <div class="gap-stat"><b>26%</b><span>1★ on paywall</span></div>
+        </div>
+        <p class="pull-quote">"Kids loved the first 3 sessions, then everything was paywalled. Classic bait and switch."</p>
+        <a class="gap-build" href="/auth/google/start">→ Build kids yoga · one-time $14, no subscription</a>
+      </div>
+
+      <!-- Card 2: Reggaeton Karaoke -->
+      <div class="gap-card">
+        <span class="urgency-tag">⏰ Rating dropping fast</span>
+        <div class="gap-icon b"></div>
+        <h3 class="gap-name">ReggaeKaraoke — Latin Karaoke</h3>
+        <div class="gap-meta">Music & Audio · 5 mo old · Spanish-speaking, global</div>
+        <div class="gap-stats">
+          <div class="gap-stat"><b>1.8M</b><span>downloads</span></div>
+          <div class="gap-stat"><b>4.3 <span class="down">↓3.9</span></b><span>recent ★</span></div>
+          <div class="gap-stat"><b>21%</b><span>1★ on lag</span></div>
+        </div>
+        <p class="pull-quote">"Bad Bunny dropped 4 songs last month. None are here yet. By the time you add them I've moved on."</p>
+        <a class="gap-build" href="/auth/google/start">→ Build AI-scraped karaoke · day-of-release lyrics</a>
+      </div>
+
+      <!-- Card 3: K-Drama Tracker -->
+      <div class="gap-card">
+        <span class="urgency-tag">🚀 Gap closes ~60 days</span>
+        <div class="gap-icon c"></div>
+        <h3 class="gap-name">DramaList — K-Drama Tracker</h3>
+        <div class="gap-meta">Entertainment · 4 mo old · global K-drama fans</div>
+        <div class="gap-stats">
+          <div class="gap-stat"><b>800K</b><span>downloads</span></div>
+          <div class="gap-stat"><b>4.6 <span class="up">↑</span></b><span>rising ★</span></div>
+          <div class="gap-stat"><b>22%</b><span>ask regional dub</span></div>
+        </div>
+        <p class="pull-quote">"Need a filter for dramas with Hindi or Indonesian dub. Searching manually is killing me."</p>
+        <a class="gap-build" href="/auth/google/start">→ Build K-drama tracker with regional-dub filter</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ BUILDERS STRIP (F2) ============ -->
+<div class="builders">
+  <div class="builders-inner">
+    <div class="builders-head">
+      <h3>While you're reading this, <b>47 builders</b> shipped using ViralFinder this quarter.</h3>
+    </div>
+    <div class="builders-grid">
+      <div class="builder-card">
+        <div class="who"><div class="avatar">M</div><div><div class="name">Marc</div><div class="city">Berlin</div></div></div>
+        <p class="what">Polish recipe app for German diaspora</p>
+        <div class="num">22K downloads · 6 weeks · $640 MRR</div>
+      </div>
+      <div class="builder-card">
+        <div class="who"><div class="avatar b">S</div><div><div class="name">Sara</div><div class="city">Toronto</div></div></div>
+        <p class="what">Tamil wedding-budget app for South Indian families</p>
+        <div class="num">18K downloads · 12 weeks · $2K MRR</div>
+      </div>
+      <div class="builder-card">
+        <div class="who"><div class="avatar c">K</div><div><div class="name">Kenji</div><div class="city">Tokyo</div></div></div>
+        <p class="what">K-drama tracker for Japanese fans tracking dubs</p>
+        <div class="num">35K downloads · 4 weeks · $1.1K MRR</div>
+      </div>
+      <div class="builder-card">
+        <div class="who"><div class="avatar d">P</div><div><div class="name">Priya</div><div class="city">São Paulo</div></div></div>
+        <p class="what">Spanish-voiceover kids yoga app for LatAm parents</p>
+        <div class="num">50K downloads · 8 weeks · $880 MRR</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NICHE MARQUEE ============ -->
+<div class="marquee" aria-label="A scrolling list of hyper-niche app categories ViralFinder has already mapped">
+  <p class="marquee-cap"><b>33 categories.</b> Every niche we've already mapped — your category is here.</p>
+  <div class="marquee-track">
+    <!-- pills (set 1) -->
+    <span class="marquee-pill"><span class="em">🧘</span>kids yoga</span>
+    <span class="marquee-pill alt-sun"><span class="em">🎤</span>reggaeton karaoke</span>
+    <span class="marquee-pill"><span class="em">📺</span>k-drama tracker</span>
+    <span class="marquee-pill alt-peach"><span class="em">💸</span>OFW remittance</span>
+    <span class="marquee-pill"><span class="em">🏋️</span>desk-only workout</span>
+    <span class="marquee-pill alt-ink"><span class="em">🍝</span>polish recipes diaspora</span>
+    <span class="marquee-pill"><span class="em">🎼</span>afrobeats lyrics tutor</span>
+    <span class="marquee-pill alt-sun"><span class="em">🔮</span>vietnamese astrology</span>
+    <span class="marquee-pill"><span class="em">📱</span>pdf scanner low-end android</span>
+    <span class="marquee-pill"><span class="em">🍳</span>spanish bedtime stories</span>
+    <span class="marquee-pill alt-peach"><span class="em">💰</span>turkish budget tracker</span>
+    <span class="marquee-pill"><span class="em">🎓</span>IELTS speaking trainer</span>
+    <span class="marquee-pill alt-ink"><span class="em">🐶</span>pet walk tracker urban</span>
+    <span class="marquee-pill"><span class="em">🎵</span>j-pop chord tutor</span>
+    <span class="marquee-pill"><span class="em">🥋</span>kids martial arts</span>
+    <span class="marquee-pill alt-sun"><span class="em">📸</span>passport photo by country</span>
+    <span class="marquee-pill"><span class="em">💊</span>medication reminder caregivers</span>
+    <span class="marquee-pill"><span class="em">🍱</span>lunchbox planner working parent</span>
+    <span class="marquee-pill alt-peach"><span class="em">🌙</span>sleep tracker shift workers</span>
+    <span class="marquee-pill"><span class="em">📅</span>diaspora wedding planner</span>
+    <span class="marquee-pill"><span class="em">🎬</span>anime tracker for kids</span>
+    <span class="marquee-pill alt-ink"><span class="em">💼</span>freelance invoice asia</span>
+    <span class="marquee-pill"><span class="em">🥗</span>mediterranean keto</span>
+    <span class="marquee-pill"><span class="em">🍷</span>wine pairing asian food</span>
+    <span class="marquee-pill alt-sun"><span class="em">🎤</span>punjabi karaoke</span>
+    <span class="marquee-pill"><span class="em">📚</span>sign language for kids</span>
+    <span class="marquee-pill"><span class="em">🎨</span>ai photo editor for elders</span>
+    <span class="marquee-pill alt-peach"><span class="em">🎮</span>cricket fantasy advanced</span>
+    <span class="marquee-pill"><span class="em">👶</span>baby food recipes regional</span>
+    <span class="marquee-pill"><span class="em">🌍</span>OFW community chat</span>
+    <span class="marquee-pill alt-ink"><span class="em">📊</span>stock paper trading filipino</span>
+    <span class="marquee-pill"><span class="em">🎂</span>cultural birthday reminder</span>
+    <span class="marquee-pill"><span class="em">🚴</span>commute calorie tracker</span>
+    <span class="marquee-pill alt-sun"><span class="em">🎨</span>mehendi designs ai</span>
+    <span class="marquee-pill"><span class="em">🕌</span>islamic calendar adhan</span>
+    <span class="marquee-pill"><span class="em">🎬</span>telugu movie tracker</span>
+    <span class="marquee-pill"><span class="em">🎼</span>carnatic music learning</span>
+    <span class="marquee-pill alt-peach"><span class="em">✈️</span>visa tracker for diaspora</span>
+    <span class="marquee-pill"><span class="em">👵</span>senior video calling</span>
+    <span class="marquee-pill"><span class="em">💳</span>expense tracker latam</span>
+    <span class="marquee-pill alt-ink"><span class="em">🎨</span>manga drawing tutor</span>
+    <span class="marquee-pill"><span class="em">🎓</span>NEET prep flashcards</span>
+    <!-- pills (set 2 — duplicate for seamless loop) -->
+    <span class="marquee-pill"><span class="em">🧘</span>kids yoga</span>
+    <span class="marquee-pill alt-sun"><span class="em">🎤</span>reggaeton karaoke</span>
+    <span class="marquee-pill"><span class="em">📺</span>k-drama tracker</span>
+    <span class="marquee-pill alt-peach"><span class="em">💸</span>OFW remittance</span>
+    <span class="marquee-pill"><span class="em">🏋️</span>desk-only workout</span>
+    <span class="marquee-pill alt-ink"><span class="em">🍝</span>polish recipes diaspora</span>
+    <span class="marquee-pill"><span class="em">🎼</span>afrobeats lyrics tutor</span>
+    <span class="marquee-pill alt-sun"><span class="em">🔮</span>vietnamese astrology</span>
+    <span class="marquee-pill"><span class="em">📱</span>pdf scanner low-end android</span>
+    <span class="marquee-pill"><span class="em">🍳</span>spanish bedtime stories</span>
+    <span class="marquee-pill alt-peach"><span class="em">💰</span>turkish budget tracker</span>
+    <span class="marquee-pill"><span class="em">🎓</span>IELTS speaking trainer</span>
+    <span class="marquee-pill alt-ink"><span class="em">🐶</span>pet walk tracker urban</span>
+    <span class="marquee-pill"><span class="em">🎵</span>j-pop chord tutor</span>
+    <span class="marquee-pill"><span class="em">🥋</span>kids martial arts</span>
+    <span class="marquee-pill alt-sun"><span class="em">📸</span>passport photo by country</span>
+    <span class="marquee-pill"><span class="em">💊</span>medication reminder caregivers</span>
+    <span class="marquee-pill"><span class="em">🍱</span>lunchbox planner working parent</span>
+    <span class="marquee-pill alt-peach"><span class="em">🌙</span>sleep tracker shift workers</span>
+    <span class="marquee-pill"><span class="em">📅</span>diaspora wedding planner</span>
+    <span class="marquee-pill"><span class="em">🎬</span>anime tracker for kids</span>
+    <span class="marquee-pill alt-ink"><span class="em">💼</span>freelance invoice asia</span>
+    <span class="marquee-pill"><span class="em">🥗</span>mediterranean keto</span>
+    <span class="marquee-pill"><span class="em">🍷</span>wine pairing asian food</span>
+    <span class="marquee-pill alt-sun"><span class="em">🎤</span>punjabi karaoke</span>
+    <span class="marquee-pill"><span class="em">📚</span>sign language for kids</span>
+    <span class="marquee-pill"><span class="em">🎨</span>ai photo editor for elders</span>
+    <span class="marquee-pill alt-peach"><span class="em">🎮</span>cricket fantasy advanced</span>
+    <span class="marquee-pill"><span class="em">👶</span>baby food recipes regional</span>
+    <span class="marquee-pill"><span class="em">🌍</span>OFW community chat</span>
+    <span class="marquee-pill alt-ink"><span class="em">📊</span>stock paper trading filipino</span>
+    <span class="marquee-pill"><span class="em">🎂</span>cultural birthday reminder</span>
+    <span class="marquee-pill"><span class="em">🚴</span>commute calorie tracker</span>
+    <span class="marquee-pill alt-sun"><span class="em">🎨</span>mehendi designs ai</span>
+    <span class="marquee-pill"><span class="em">🕌</span>islamic calendar adhan</span>
+    <span class="marquee-pill"><span class="em">🎬</span>telugu movie tracker</span>
+    <span class="marquee-pill"><span class="em">🎼</span>carnatic music learning</span>
+    <span class="marquee-pill alt-peach"><span class="em">✈️</span>visa tracker for diaspora</span>
+    <span class="marquee-pill"><span class="em">👵</span>senior video calling</span>
+    <span class="marquee-pill"><span class="em">💳</span>expense tracker latam</span>
+    <span class="marquee-pill alt-ink"><span class="em">🎨</span>manga drawing tutor</span>
+    <span class="marquee-pill"><span class="em">🎓</span>NEET prep flashcards</span>
+  </div>
+</div>
+
+<!-- ============ HOW IT WORKS ============ -->
+<div class="how" id="how">
+  <div class="how-inner">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>From keyword to viral candidate in three clicks.</h2>
+      <p>You don't need an analyst team. You need the right list, sorted the right way, with the boring parts already done.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">STEP 1</span>
+        <div class="step-icon mint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#04B587" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <h3>We crawl Google Play</h3>
+        <p>10,000+ apps + millions of reviews across 33 curated categories. Pulled, deduped, refreshed daily.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">STEP 2</span>
+        <div class="step-icon coral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F04848" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+        </div>
+        <h3>We score velocity, not vanity</h3>
+        <p>Lifetime installs lie. Our viral score weights installs/month so brand-new entrants beat sleeping giants.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">STEP 3</span>
+        <div class="step-icon violet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+        <h3>AI tells you what to build</h3>
+        <p>Every review summarized into complaints + praises + feature requests. Niches mapped. Ideas generated.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VERSUS BLOCK (F3) ============ -->
+<div class="versus">
+  <div class="versus-inner">
+    <div class="versus-head">
+      <h2>Stop trial-and-error. Start solving what sells.</h2>
+      <p>Two paths to your first viral app. One leaves money on the table.</p>
+    </div>
+    <div class="versus-grid">
+      <div class="versus-col bad">
+        <h3>Without ViralFinder</h3>
+        <p class="sub">The trial-and-error path everyone's stuck on</p>
+        <ul>
+          <li>Pick a niche based on a hunch from Twitter</li>
+          <li>Spend 3 months building before any signal</li>
+          <li>Launch to crickets and 200 downloads</li>
+          <li>Repeat 3 times before something sticks</li>
+        </ul>
+        <div class="median">Result: <b>18 months from idea to first dollar</b></div>
+      </div>
+      <div class="versus-col good">
+        <h3>With ViralFinder</h3>
+        <p class="sub">Solve what already sells. First-mover into validated demand.</p>
+        <ul>
+          <li>See which niches are growing in real numbers</li>
+          <li>Read users' actual complaints in 60 seconds</li>
+          <li>Ship a differentiated clone in 30 days</li>
+          <li>First-mover into pre-validated demand</li>
+        </ul>
+        <div class="median">Result: <b>6 weeks from idea to first 10K downloads</b></div>
+      </div>
+    </div>
+    <div class="versus-bottom">
+      <span>Don't leave money on the table.</span> The gaps don't stay open forever.
+    </div>
+  </div>
+</div>
+
+<!-- ============ FEATURE A — RANKING ============ -->
+<section id="features">
+  <div class="feature-row">
+    <div class="ftr-text">
+      <span class="eyebrow mint">Velocity ranking</span>
+      <h2>Velocity-ranked, not lifetime-ranked.</h2>
+      <p>Stop comparing 10-year-old giants to brand-new entrants. Our viral score weights installs/month, time-since-release, rating polarization, and freshness — so the apps that are <em>actually</em> growing right now rise to the top.</p>
+      <p>Click any developer to see their full catalog. Click any app to fetch every review and have AI cluster them by theme.</p>
+      <a class="arrow-link" href="/auth/google/start">Try the ranking →</a>
+    </div>
+    <div class="ftr-visual">
+      <div class="ftr-blob" style="background: var(--mint); width: 360px; height: 360px; top: -20px; right: -40px;"></div>
+      <div class="ftr-card">
+        <div class="ftr-card-header">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="ftr-card-title">viralfinder.io / ranking</div>
+        </div>
+        <div class="mock-row header"><span></span><span>App</span><span>installs/mo</span><span>viral</span></div>
+        <div class="mock-row"><div class="icon-sq"></div><div><div class="title">TinyFlow — Kids Yoga</div><div class="sub">4 mo old · 4.4★</div></div><span class="ipm">700K</span><span class="score">24.1</span></div>
+        <div class="mock-row"><div class="icon-sq b"></div><div><div class="title">ReggaeKaraoke (Latin)</div><div class="sub">5 mo old · 4.3★</div></div><span class="ipm">360K</span><span class="score">21.7</span></div>
+        <div class="mock-row"><div class="icon-sq c"></div><div><div class="title">DramaList — K-Drama Tracker</div><div class="sub">4 mo old · 4.6★</div></div><span class="ipm">200K</span><span class="score">22.4</span></div>
+        <div class="mock-row"><div class="icon-sq d"></div><div><div class="title">OFW Money — Filipino Remit</div><div class="sub">7 mo old · 4.5★</div></div><span class="ipm">220K</span><span class="score">22.9</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FEATURE B — AI ============ -->
+  <div class="feature-row reverse">
+    <div class="ftr-text">
+      <span class="eyebrow violet">AI gap reports</span>
+      <h2>Stop guessing. Generate.</h2>
+      <p>Feed any niche's top 10 apps and our AI returns three differentiated app concepts — value props, target users, initial feature lists. Pulled directly from real review pain points so you know users will care.</p>
+      <a class="arrow-link" href="/auth/google/start">Generate a gap report →</a>
+    </div>
+    <div class="ftr-visual">
+      <div class="ftr-blob" style="background: var(--violet-soft); width: 360px; height: 360px; top: -20px; left: -40px;"></div>
+      <div class="ftr-card">
+        <div class="ftr-card-header">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="ftr-card-title">AI Gap Generator</div>
+        </div>
+        <div class="ai-msg">Generate 3 app ideas for the <b>"kids yoga"</b> niche. Top apps have 2M+ downloads but 26% of 1★ reviews complain about subscription paywalls after 3 sessions.</div>
+        <div class="ai-resp">
+          <h5>3 differentiated concepts</h5>
+          <ul>
+            <li><b>TinyZen</b> — one-time $14, all sessions unlocked, animal characters for under-5s</li>
+            <li><b>YogaTales</b> — story-driven yoga for ages 4–7, voiceover in EN/ES/HI</li>
+            <li><b>FamilyFlow</b> — parent + kid co-yoga, gamified streaks, no subscription</li>
+          </ul>
+        </div>
+        <div class="ai-typing">▍ writing differentiation gap report…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FEATURE C — NICHES ============ -->
+  <div class="feature-row">
+    <div class="ftr-text">
+      <span class="eyebrow coral">Niche saturation</span>
+      <h2>Find the corners no one's built yet.</h2>
+      <p>33 curated categories with hundreds of keyword niches each. Sort by <em>"Best opportunity"</em> — apps with low competitor count <strong>and</strong> low max install ceiling — and discover where dominant players left a gap.</p>
+      <a class="arrow-link" href="/auth/google/start">Explore niches →</a>
+    </div>
+    <div class="ftr-visual">
+      <div class="ftr-blob" style="background: var(--coral); width: 360px; height: 360px; bottom: -40px; right: -40px;"></div>
+      <div class="ftr-card">
+        <div class="ftr-card-header">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="ftr-card-title">Niches · sorted by Opportunity</div>
+        </div>
+        <div class="niche-row"><div><div class="niche-name">regional voice notes</div><div class="niche-meta">5 apps · max 200K</div></div><span class="niche-meta">4.7★</span><span class="opp high">High</span></div>
+        <div class="niche-row"><div><div class="niche-name">diaspora wedding planner</div><div class="niche-meta">6 apps · max 500K</div></div><span class="niche-meta">4.2★</span><span class="opp high">High</span></div>
+        <div class="niche-row"><div><div class="niche-name">reggaeton karaoke</div><div class="niche-meta">9 apps · max 1.8M</div></div><span class="niche-meta">4.3★</span><span class="opp high">High</span></div>
+        <div class="niche-row"><div><div class="niche-name">k-drama tracker</div><div class="niche-meta">12 apps · max 800K</div></div><span class="niche-meta">4.6★</span><span class="opp high">High</span></div>
+        <div class="niche-row"><div><div class="niche-name">kids yoga</div><div class="niche-meta">14 apps · max 2.8M</div></div><span class="niche-meta">4.4★</span><span class="opp med">Med</span></div>
+        <div class="niche-row"><div><div class="niche-name">OFW remittance</div><div class="niche-meta">15 apps · max 5M</div></div><span class="niche-meta">4.3★</span><span class="opp med">Med</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIAL SLAB ============ -->
+<div class="testimonial">
+  <div class="test-inner">
+    <div>
+      <p class="test-quote" id="quote-text">"Built a Portuguese cooking-with-kids app. <b>50K downloads in 8 weeks. $1,800 MRR by month 3.</b> ViralFinder paid for itself in 4 days."</p>
+      <div class="test-author" id="quote-author">— Maria L. · Solo dev, Lisbon</div>
+      <div class="test-dots">
+        <span class="active" data-i="0"></span>
+        <span data-i="1"></span>
+        <span data-i="2"></span>
+      </div>
+    </div>
+    <div class="test-logo" id="quote-logo">solo<br>kitchen</div>
+  </div>
+</div>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="pricing">
+  <div class="section-head">
+    <span class="eyebrow">Pricing</span>
+    <h2>One price for creator wallets. No enterprise sales call.</h2>
+    <p>Sensor Tower charges $40K/year. We charge $29/month. Annual saves ~17%. Cancel any time.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price">
+      <h4>Free</h4>
+      <div class="amount">$0</div>
+      <ul>
+        <li>5 categories</li>
+        <li>Top 25 apps each</li>
+        <li>1 niche report / category</li>
+      </ul>
+      <a class="btn btn-ghost" href="/auth/google/start" style="border:1px solid var(--border)">Start free</a>
+    </div>
+    <div class="price">
+      <h4>Solo</h4>
+      <div class="amount">$29<span>/mo</span></div>
+      <ul>
+        <li>All 33 categories</li>
+        <li>100 review fetches/mo</li>
+        <li>50 AI gap reports/mo</li>
+        <li>Weekly email digest</li>
+        <li>CSV export</li>
+      </ul>
+      <a class="btn btn-ghost" href="/auth/google/start" style="border:1px solid var(--border)">Start trial</a>
+    </div>
+    <div class="price featured">
+      <h4>Pro</h4>
+      <div class="amount">$99<span>/mo</span></div>
+      <ul>
+        <li>Unlimited fetches</li>
+        <li>500 AI gap reports/mo</li>
+        <li>App idea generator</li>
+        <li>Daily digest + Slack</li>
+        <li>Sheets / Notion sync</li>
+      </ul>
+      <a class="btn btn-primary" href="/auth/google/start">Start trial</a>
+    </div>
+    <div class="price">
+      <h4>Studio</h4>
+      <div class="amount">$299<span>/mo</span></div>
+      <ul>
+        <li>5,000 AI reports/mo</li>
+        <li>API + webhooks</li>
+        <li>White-label reports</li>
+        <li>Dedicated channel</li>
+      </ul>
+      <a class="btn btn-ghost" href="/auth/google/start" style="border:1px solid var(--border)">Contact us</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<div class="final-cta">
+  <div class="fomo-banner">👀 <b>1,247 creators joined this month.</b> While you're deciding, three of them just shipped.</div>
+  <h2>Ready to find your next viral app?</h2>
+  <p>Sign in with Google. We pre-loaded 10,000+ apps for you. Be browsing in 30 seconds.</p>
+  <a class="btn btn-light btn-large" href="/auth/google/start">
+    <svg viewBox="0 0 48 48" style="width:18px;height:18px"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.972 32.218 29.418 35 24 35c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.046 6.053 28.785 4 24 4 12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.046 6.053 28.785 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c4.733 0 9.067-1.811 12.355-4.764l-5.703-4.825C28.768 35.91 26.49 36.667 24 36.667c-5.398 0-9.94-3.51-11.515-8.43l-6.521 5.025C9.31 40.13 16.077 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083L43.6 20H24v8h11.303c-.792 2.236-2.231 4.166-4.087 5.571l5.703 4.825C39.992 35.34 44 30.027 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+    Sign in with Google to start free
+  </a>
+  <p style="font-size:13px;margin-top:16px;opacity:0.85"><b>Don't leave money on the table.</b> The next viral niche won't wait.</p>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="foot-row">
+    <div>
+      <div class="foot-brand">Viral<span class="accent">Finder</span></div>
+      <p>Find your next viral app idea before everyone else. Built for creators everywhere.</p>
+      <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Welcome to the list!');">
+        <input type="email" placeholder="your@email.com" required />
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+    <div>
+      <h5>Product</h5>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="/auth/google/start">Sign in</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="#">Niche reports</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Changelog</a></li>
+        <li><a href="mailto:hello@viralfinder.app">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Legal</h5>
+      <ul>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/terms">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <div>© 2026 ViralFinder · Built for creators everywhere</div>
+    <div><a href="mailto:hello@viralfinder.app">hello@viralfinder.app</a></div>
+  </div>
+</footer>
+
+<script>
+  // sticky nav border on scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 8);
+  });
+
+  // ----- live ticker (F1) -----
+  const tickerMessages = [
+    'Marc shipped a Polish recipe app for German diaspora · <i>22K downloads · $640 MRR</i> · 6 weeks ago',
+    'Sara built a Tamil wedding-budget app for South Indian families · <i>18K downloads · $2K MRR</i> · 12 weeks ago',
+    'Kenji shipped a K-drama tracker for Japanese fans · <i>35K downloads · $1.1K MRR</i> · 4 weeks ago',
+    'Priya shipped a Spanish-voiceover kids yoga app for LatAm parents · <i>50K downloads</i> · 8 weeks ago',
+    'Alex shipped a Vietnamese astrology app — niche nobody saw · <i>9K downloads</i> · 4 weeks ago'
+  ];
+  let ti = 0;
+  const tEl = document.getElementById('ticker-msg');
+  setInterval(() => {
+    ti = (ti + 1) % tickerMessages.length;
+    tEl.style.opacity = '0';
+    setTimeout(() => {
+      tEl.innerHTML = tickerMessages[ti];
+      tEl.style.opacity = '1';
+    }, 380);
+  }, 5000);
+
+  // ----- testimonial rotator -----
+  const quotes = [
+    {
+      text: '"Built a Portuguese cooking-with-kids app. <b>50K downloads in 8 weeks. $1,800 MRR by month 3.</b> ViralFinder paid for itself in 4 days."',
+      author: '— Maria L. · Solo dev, Lisbon',
+      logo: 'solo<br>kitchen'
+    },
+    {
+      text: '"Spotted a gap in K-drama trackers — built one for Japanese fans tracking dubs. <b>35K downloads month 1. Skipped 2 weeks of user interviews entirely.</b>"',
+      author: '— Kenji T. · Solo studio, Tokyo',
+      logo: 'studio<br>tokyo'
+    },
+    {
+      text: '"Three apps from gap reports — Polish recipes, Turkish budget tracker, Vietnamese astrology. <b>All 3 hit 5K+ downloads. Two are at $500+ MRR.</b> Cheaper than Sensor Tower and ten times more useful."',
+      author: '— Marc V. · ASO consultant, Berlin',
+      logo: 'maker<br>berlin'
+    }
+  ];
+  let qi = 0;
+  const qText = document.getElementById('quote-text');
+  const qAuthor = document.getElementById('quote-author');
+  const qLogo = document.getElementById('quote-logo');
+  const qDots = document.querySelectorAll('.test-dots span');
+  function showQuote(i) {
+    qi = i;
+    qText.innerHTML = quotes[i].text;
+    qAuthor.textContent = quotes[i].author;
+    qLogo.innerHTML = quotes[i].logo;
+    qDots.forEach((d, di) => d.classList.toggle('active', di === i));
+  }
+  qDots.forEach(d => d.onclick = () => showQuote(parseInt(d.dataset.i, 10)));
+  setInterval(() => showQuote((qi + 1) % quotes.length), 6000);
+</script>
+
+</body>
+</html>

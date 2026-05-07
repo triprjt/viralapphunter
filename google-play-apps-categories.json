@@ -1,0 +1,214 @@
+[
+  {
+    "category": "ART_AND_DESIGN",
+    "category_description": "Art & Design Apps"
+  },
+  {
+    "category": "AUTO_AND_VEHICLES",
+    "category_description": "Auto & Vehicles Apps"
+  },
+  {
+    "category": "ANDROID_WEAR",
+    "category_description": "Android Wear Apps"
+  },
+  {
+    "category": "BEAUTY",
+    "category_description": "Beauty Apps"
+  },
+  {
+    "category": "BOOKS_AND_REFERENCE",
+    "category_description": "Books & Reference Apps"
+  },
+  {
+    "category": "BUSINESS",
+    "category_description": "Business Apps"
+  },
+  {
+    "category": "COMICS",
+    "category_description": "Comics Apps"
+  },
+  {
+    "category": "COMMUNICATION",
+    "category_description": "Communication Apps"
+  },
+  {
+    "category": "DATING",
+    "category_description": "Dating Apps"
+  },
+  {
+    "category": "EDUCATION",
+    "category_description": "Education Apps"
+  },
+  {
+    "category": "ENTERTAINMENT",
+    "category_description": "Entertainment Apps"
+  },
+  {
+    "category": "EVENTS",
+    "category_description": "Events Apps"
+  },
+  {
+    "category": "FINANCE",
+    "category_description": "Finance Apps"
+  },
+  {
+    "category": "FOOD_AND_DRINK",
+    "category_description": "Food & Drink Apps"
+  },
+  {
+    "category": "HEALTH_AND_FITNESS",
+    "category_description": "Health & Fitness Apps"
+  },
+  {
+    "category": "HOUSE_AND_HOME",
+    "category_description": "House & Home Apps"
+  },
+  {
+    "category": "LIBRARIES_AND_DEMO",
+    "category_description": "Libraries & Demo Apps"
+  },
+  {
+    "category": "LIFESTYLE",
+    "category_description": "Lifestyle Apps"
+  },
+  {
+    "category": "MAPS_AND_NAVIGATION",
+    "category_description": "Maps & Navigation Apps"
+  },
+  {
+    "category": "MEDICAL",
+    "category_description": "Medical Apps"
+  },
+  {
+    "category": "MUSIC_AND_AUDIO",
+    "category_description": "Music & Audio Apps"
+  },
+  {
+    "category": "NEWS_AND_MAGAZINES",
+    "category_description": "News & Magazines Apps"
+  },
+  {
+    "category": "PARENTING",
+    "category_description": "Parenting Apps"
+  },
+  {
+    "category": "PERSONALIZATION",
+    "category_description": "Personalization Apps"
+  },
+  {
+    "category": "PHOTOGRAPHY",
+    "category_description": "Photography Apps"
+  },
+  {
+    "category": "PRODUCTIVITY",
+    "category_description": "Productivity Apps"
+  },
+  {
+    "category": "SHOPPING",
+    "category_description": "Shopping Apps"
+  },
+  {
+    "category": "SOCIAL",
+    "category_description": "Social Apps"
+  },
+  {
+    "category": "SPORTS",
+    "category_description": "Sports Apps"
+  },
+  {
+    "category": "TOOLS",
+    "category_description": "Tools Apps"
+  },
+  {
+    "category": "TRAVEL_AND_LOCAL",
+    "category_description": "Travel & Local Apps"
+  },
+  {
+    "category": "VIDEO_PLAYERS",
+    "category_description": "Video Players & Editors Apps"
+  },
+  {
+    "category": "WATCH_FACE",
+    "category_description": "Watch Face Apps"
+  },
+  {
+    "category": "WEATHER",
+    "category_description": "Weather Apps"
+  },
+  {
+    "category": "GAME",
+    "category_description": "Games"
+  },
+  {
+    "category": "GAME_ACTION",
+    "category_description": "Action Games"
+  },
+  {
+    "category": "GAME_ADVENTURE",
+    "category_description": "Adventure Games"
+  },
+  {
+    "category": "GAME_ARCADE",
+    "category_description": "Arcade Games"
+  },
+  {
+    "category": "GAME_BOARD",
+    "category_description": "Board Games"
+  },
+  {
+    "category": "GAME_CARD",
+    "category_description": "Card Games"
+  },
+  {
+    "category": "GAME_CASINO",
+    "category_description": "Casino Games"
+  },
+  {
+    "category": "GAME_CASUAL",
+    "category_description": "Casual Games"
+  },
+  {
+    "category": "GAME_EDUCATIONAL",
+    "category_description": "Educational Games"
+  },
+  {
+    "category": "GAME_MUSIC",
+    "category_description": "Music Games"
+  },
+  {
+    "category": "GAME_PUZZLE",
+    "category_description": "Puzzle Games"
+  },
+  {
+    "category": "GAME_RACING",
+    "category_description": "Racing Games"
+  },
+  {
+    "category": "GAME_ROLE_PLAYING",
+    "category_description": "Role Playing Games"
+  },
+  {
+    "category": "GAME_SIMULATION",
+    "category_description": "Simulation Games"
+  },
+  {
+    "category": "GAME_SPORTS",
+    "category_description": "Sports Games"
+  },
+  {
+    "category": "GAME_STRATEGY",
+    "category_description": "Strategy Games"
+  },
+  {
+    "category": "GAME_TRIVIA",
+    "category_description": "Trivia Games"
+  },
+  {
+    "category": "GAME_WORD",
+    "category_description": "Word Games"
+  },
+  {
+    "category": "FAMILY",
+    "category_description": "Kids Games"
+  }
+]
