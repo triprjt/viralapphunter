@@ -1377,7 +1377,7 @@
       maxStaleDays: 'all',    // 'all' | 30 | 90 | 180 | 365
       term: 'all',
       search: '',
-      sort: 'viral_score',
+      sort: 'released',       // newest apps first by default
       dir: 'desc',
       page: 0,
       pageSize: 50,
@@ -1927,7 +1927,7 @@
             rankState.monetization = 'all';
             rankState.search = '';
             rankState.page = 0;
-            rankState.sort = 'viral_score';
+            rankState.sort = 'released';
             rankState.dir = 'desc';
             setView('ranking');
             window.scrollTo({ top: 0, behavior: 'auto' });
@@ -2198,7 +2198,7 @@
         rankState.monetization = 'all';
         rankState.search = '';
         rankState.page = 0;
-        rankState.sort = 'viral_score';
+        rankState.sort = 'released';
         rankState.dir = 'desc';
         setView(hasRanking ? 'ranking' : 'reviews', { skipHistory: true });
         return;
