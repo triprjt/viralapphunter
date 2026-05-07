@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to use ViralFinder</title>
+  <script>
+    (function() {
+      try { if (localStorage.getItem('vf-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel-2: #1f242d;
+      --border: #2a313d;
+      --text: #e6e8ee;
+      --muted: #8a93a6;
+      --accent: #6ea8ff;
+      --mint: #06D6A0; --coral: #FF6B6B; --coral-deep: #F04848;
+      --sunshine: #FFD23F; --violet: #7C3AED; --ink: #0B1220; --peach: #FFE8D6;
+    }
+    :root[data-theme="light"] {
+      --bg: #FFFCF5; --panel: #FFFFFF; --panel-2: #F1F5F9;
+      --border: #E5E7EB; --text: #0F172A; --muted: #64748B;
+      --accent: #7C3AED;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 16px/1.6 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; transition: background-color 0.2s, color 0.2s; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 900; font-size: 22px; letter-spacing: -0.02em; color: var(--text); }
+    .brand .accent { background: linear-gradient(135deg, var(--coral), var(--violet) 60%, var(--mint)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-actions { display: flex; gap: 10px; align-items: center; }
+    .theme-toggle { background: none; border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .theme-toggle:hover { border-color: var(--accent); }
+    .back-link { color: var(--muted); font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; }
+    .back-link:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+
+    main { max-width: 640px; margin: 0 auto; padding: 48px 24px 80px; }
+    h1 { font-size: 32px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 8px; line-height: 1.15; }
+    h1 .gradient { background: linear-gradient(120deg, var(--coral), var(--violet) 50%, var(--mint)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .pitch { color: var(--muted); font-size: 16px; margin: 0 0 36px; line-height: 1.55; }
+
+    h2 { font-size: 18px; font-weight: 800; margin: 32px 0 14px; letter-spacing: -0.01em; }
+
+    .term-list { list-style: none; padding: 0; margin: 0 0 8px; }
+    .term-list li { margin: 0 0 14px; line-height: 1.55; font-size: 15px; }
+    .term { display: inline-block; background: var(--peach); color: var(--ink); padding: 1px 8px; border-radius: 999px; font-weight: 700; font-size: 13px; margin-right: 4px; }
+
+    .quick-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0 0 8px; }
+    @media (min-width: 540px) { .quick-actions { grid-template-columns: 1fr 1fr; } }
+    .qa { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; cursor: pointer; text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 4px; transition: border-color 0.12s, transform 0.12s; }
+    .qa:hover { border-color: var(--coral); transform: translateY(-1px); text-decoration: none; }
+    .qa b { font-size: 14px; font-weight: 700; }
+    .qa span { font-size: 12px; color: var(--muted); }
+
+    .primer { background: var(--panel-2); border-left: 3px solid var(--coral); border-radius: 8px; padding: 14px 16px; font-size: 14px; line-height: 1.6; margin: 0; color: var(--text); }
+    .primer b { color: var(--text); font-weight: 700; }
+
+    footer { color: var(--muted); font-size: 13px; margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 14px; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/app" class="brand">Viral<span class="accent">Finder</span></a>
+  <div class="nav-actions">
+    <a href="/app" class="back-link">← Back to dashboard</a>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
+</nav>
+
+<main>
+  <h1>How to use <span class="gradient">ViralFinder</span></h1>
+  <p class="pitch">Find your next viral app idea. We rank Google Play apps by velocity (installs/month), surface niches with low competition, and let you read every review.</p>
+
+  <h2>3 things to know</h2>
+  <ul class="term-list">
+    <li><span class="term">Niche</span> a keyword slice of a category (like <code>kids yoga</code> or <code>k-drama tracker</code>).</li>
+    <li><span class="term">Viral score</span> a composite of installs/month + rating + reach − staleness. Higher = hotter right now.</li>
+    <li><span class="term">Free plan</span> up to 5 categories, 1 review fetch and 1 developer lookup lifetime. Reviews / Niches / Viral Ranking are all scoped to your picked categories.</li>
+  </ul>
+
+  <h2>Quick actions</h2>
+  <div class="quick-actions">
+    <a class="qa" href="/app#niches"><b>🎯 Pick a niche to build in</b><span>Niches tab → sort by Best opportunity</span></a>
+    <a class="qa" href="/app#ranking"><b>🚀 See what's growing fast</b><span>Viral Ranking → sort by Installs/mo</span></a>
+    <a class="qa" href="/app?settings=1"><b>⚙️ Change my saved categories</b><span>Re-scopes Reviews + Ranking + Niches</span></a>
+    <a class="qa" href="/app#reviews"><b>💬 Read an app's reviews</b><span>Reviews tab → click View N → reviews</span></a>
+  </div>
+
+  <h2>Settings primer</h2>
+  <p class="primer">
+    Open your user menu (top-right) → <b>⚙️ Settings</b> → toggle category chips → <b>Save</b>. That's it. Reviews, Viral Ranking, and Niches re-scope instantly.
+  </p>
+
+  <footer>
+    <a href="mailto:hello@viralfinder.app">hello@viralfinder.app</a>
+    <a href="/app">📜 Activity log (in dashboard)</a>
+    <a href="/auth/logout">🚪 Sign out</a>
+  </footer>
+</main>
+
+<script>
+  (() => {
+    const btn = document.getElementById('theme-toggle');
+    const icon = document.getElementById('theme-icon');
+    function refresh() {
+      const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      icon.textContent = cur === 'dark' ? '🌙' : '☀️';
+      btn.title = cur === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    }
+    refresh();
+    btn.onclick = () => {
+      const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      const next = cur === 'light' ? 'dark' : 'light';
+      if (next === 'light') document.documentElement.dataset.theme = 'light';
+      else delete document.documentElement.dataset.theme;
+      try { localStorage.setItem('vf-theme', next); } catch (e) {}
+      refresh();
+    };
+  })();
+</script>
+
+</body>
+</html>

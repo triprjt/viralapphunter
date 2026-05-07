@@ -427,7 +427,9 @@
             <span id="um-email">…</span>
           </span>
         </div>
+        <a class="user-menu-item" id="um-settings">⚙️ <span>Settings</span></a>
         <a class="user-menu-item" id="um-activity">📜 <span>Activity log</span></a>
+        <a class="user-menu-item" href="/help">📖 <span>How to use</span></a>
         <a class="user-menu-item danger" href="/auth/logout">🚪 <span>Sign out</span></a>
       </div>
       <!-- Mobile-only hamburger menu (replaces theme/tier/avatar on small viewports) -->
@@ -447,10 +449,18 @@
           <span class="mm-left"><span id="mm-theme-icon">🌙</span> Change UI theme</span>
           <span class="mm-right" id="mm-theme-label">Dark</span>
         </button>
+        <button class="mobile-menu-item" id="mm-settings">
+          <span class="mm-left">⚙️ Settings</span>
+          <span class="mm-right">→</span>
+        </button>
         <button class="mobile-menu-item" id="mm-activity">
           <span class="mm-left">📜 Activity log</span>
           <span class="mm-right">→</span>
         </button>
+        <a class="mobile-menu-item" href="/help">
+          <span class="mm-left">📖 How to use</span>
+          <span class="mm-right">→</span>
+        </a>
         <a class="mobile-menu-item danger" href="/auth/logout">
           <span class="mm-left">🚪 Sign out</span>
         </a>
@@ -489,10 +499,10 @@
       <!-- Step 2 -->
       <div class="ob-step" data-step="2" style="display:none">
         <h2>Which categories are you curious about?</h2>
-        <p class="sub">Pick 1–3. We'll surface gaps + viral candidates from these first. Change anytime.</p>
+        <p class="sub">Pick 1–5. We'll surface gaps + viral candidates from these. Change anytime in Settings.</p>
         <input type="text" class="ob-search" id="ob-search" placeholder="Search categories…" />
         <div class="ob-cats" id="ob-cats"></div>
-        <div class="ob-counter" id="ob-counter">Pick at least 1, max 3</div>
+        <div class="ob-counter" id="ob-counter">Pick at least 1, max 5</div>
         <div class="ob-actions">
           <button class="ob-skip" id="ob-skip">Skip for now</button>
           <button class="ob-btn" id="ob-next-2" disabled>Continue →</button>
@@ -527,6 +537,26 @@
         <div class="up-tier featured"><h4>Solo</h4><div class="amount">$29<span>/mo</span></div><ul><li>All 33 categories</li><li>100 review fetches/mo</li><li>50 AI gap reports/mo</li><li>Unlimited dev lookups</li><li>Weekly digest</li></ul><a class="btn btn-primary" id="up-cta-solo" href="mailto:hello@viralfinder.app?subject=Upgrade%20me%20to%20Solo">Upgrade to Solo →</a></div>
         <div class="up-tier"><h4>Pro</h4><div class="amount">$99<span>/mo</span></div><ul><li>Unlimited fetches</li><li>500 AI reports/mo</li><li>App idea generator</li><li>Daily digest + Slack</li></ul><a class="btn btn-secondary" href="mailto:hello@viralfinder.app?subject=Upgrade%20me%20to%20Pro">Choose Pro</a></div>
         <div class="up-tier"><h4>Studio</h4><div class="amount">$299<span>/mo</span></div><ul><li>5K AI reports/mo</li><li>API + webhooks</li><li>White-label</li></ul><a class="btn btn-secondary" href="mailto:hello@viralfinder.app?subject=Studio%20enquiry">Contact us</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal (categories editor) -->
+  <div id="settings-overlay" class="activity-overlay" style="display:none">
+    <div class="activity-modal">
+      <div class="activity-header">
+        <h2>⚙️ Your saved categories</h2>
+        <button id="settings-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div style="padding: 16px 22px 8px">
+        <p id="settings-sub" style="margin: 0 0 12px; color: var(--muted); font-size: 13px"></p>
+        <input type="text" class="ob-search" id="settings-search" placeholder="Search categories…" style="margin-bottom: 12px" />
+        <div class="ob-cats" id="settings-cats" style="max-height: 50vh"></div>
+        <div class="ob-counter" id="settings-counter" style="margin-top: 12px"></div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 12px 22px 22px; border-top: 1px solid var(--border)">
+        <button class="ob-skip" id="settings-cancel" type="button">Cancel</button>
+        <button class="ob-btn" id="settings-save" type="button">Save</button>
       </div>
     </div>
   </div>
@@ -586,8 +616,22 @@
     content.classList.remove('loading');
     const $ = id => document.getElementById(id);
 
+    // Build a SQL fragment that scopes a query to the user's picked categories (Free only).
+    // Returns { sub: "AND package_name IN (SELECT...)", params: {...} } or {sub: "", params: {}} if not applicable.
+    function reviewsCategoryScope() {
+      if (!userIsFree || userPickedCats.length === 0) return { sub: '', params: {} };
+      const params = {};
+      const ors = userPickedCats.map((c, i) => {
+        params['$rcat' + i] = '%,' + c + ',%';
+        return `(',' || COALESCE(categories,'') || ',') LIKE $rcat${i}`;
+      }).join(' OR ');
+      return { sub: ` AND package_name IN (SELECT package_name FROM discovered_apps WHERE ${ors})`, params };
+    }
+
     function refreshPkgOptions() {
-      const r = safeExec(`SELECT DISTINCT package_name FROM ${state.table} ORDER BY package_name`);
+      const scope = reviewsCategoryScope();
+      const sql = `SELECT DISTINCT package_name FROM ${state.table} WHERE 1=1${scope.sub} ORDER BY package_name`;
+      const r = safeExec(sql, scope.params);
       const pkgs = r.length ? r[0].values.map(v => v[0]) : [];
       $('f-pkg').innerHTML = `<option value="all">All apps</option>` + pkgs.map(p => `<option ${p===state.pkg?'selected':''}>${p}</option>`).join('');
     }
@@ -603,6 +647,12 @@
       if (state.search.trim()) {
         clauses.push(`(text LIKE $q OR user_name LIKE $q)`);
         params.$q = `%${state.search.trim()}%`;
+      }
+      // Free-tier category scope (subquery against discovered_apps)
+      const scope = reviewsCategoryScope();
+      if (scope.sub) {
+        clauses.push(`package_name IN (SELECT package_name FROM discovered_apps WHERE (',' || COALESCE(categories,'') || ',') LIKE $rcat0${userPickedCats.slice(1).map((_, i) => ` OR (',' || COALESCE(categories,'') || ',') LIKE $rcat${i+1}`).join('')})`);
+        Object.assign(params, scope.params);
       }
       return { where: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', params };
     }
@@ -1325,6 +1375,10 @@
     }
 
     function renderRankingView() {
+      if (userIsFree && userPickedCats.length === 0) {
+        renderEmptyStateInto(content, 'ranking');
+        return;
+      }
       const sel = (v, cur) => String(v) === String(cur) ? ' selected' : '';
       content.innerHTML = `
         ${filtersWrapStart(rankFilterSummary())}
@@ -1458,6 +1512,12 @@
       if (rankState.requireAds) clauses.push('contains_ads = 1');
       if (rankState.requireIAP) clauses.push('offers_iap = 1');
       if (rankState.monetization === 'editors') clauses.push('editors_choice = 1');
+      // Free-tier category scope: filter to user's picked categories
+      if (userIsFree && userPickedCats.length > 0) {
+        const ors = userPickedCats.map((c, i) => `(',' || COALESCE(categories,'') || ',') LIKE $cat${i}`).join(' OR ');
+        clauses.push(`(${ors})`);
+        userPickedCats.forEach((c, i) => { params['$cat' + i] = '%,' + c + ',%'; });
+      }
       return { where: 'WHERE ' + clauses.join(' AND '), params };
     }
 
@@ -1699,8 +1759,23 @@
         content.innerHTML = `<div class="empty">Failed to load /api/categories: ${escapeHtml(e.message)}<br>Make sure server.py is running.</div>`;
         return;
       }
-      const cat = cats.find(c => c.id === nicheState.categoryId) || cats[0];
+      // Free-tier category scope: only show user's picked categories in the dropdown
+      let visibleCats = cats;
+      if (userIsFree && userPickedCats.length > 0) {
+        visibleCats = cats.filter(c => userPickedCats.includes(c.id));
+      }
+      // Free user with 0 picks → empty state CTA (handled below)
+      if (userIsFree && userPickedCats.length === 0) {
+        renderEmptyStateInto(content, 'niches');
+        return;
+      }
+      const cat = visibleCats.find(c => c.id === nicheState.categoryId) || visibleCats[0];
+      if (!cat) {
+        renderEmptyStateInto(content, 'niches');
+        return;
+      }
       nicheState.categoryId = cat.id;
+      cats = visibleCats; // hereafter the dropdown only shows the visible set
 
       const sortLabels = {
         count: 'Most competitive', opportunity: 'Best opportunity',
@@ -1916,6 +1991,10 @@
     }
 
     function renderReviewsView() {
+      if (userIsFree && userPickedCats.length === 0) {
+        renderEmptyStateInto(content, 'reviews');
+        return;
+      }
       content.innerHTML = `
         ${filtersWrapStart(reviewsFilterSummary())}
         <div class="filters">
@@ -2152,7 +2231,7 @@
     const userPlan = (vfUser?.dataset.plan || 'free').toLowerCase();
     const userOnboarded = vfUser?.dataset.onboarded === '1';
     const userFirstName = (vfUser?.dataset.name || '').split(' ')[0] || 'there';
-    const userPickedCats = (vfUser?.dataset.categories || '').split(',').filter(Boolean);
+    let userPickedCats = (vfUser?.dataset.categories || '').split(',').filter(Boolean);
     const userIsFree = userPlan === 'free';
     const userIsPaid = ['solo', 'pro', 'studio'].includes(userPlan);
     let userUsage = {}; // {review_fetch: 1, developer_lookup: 0, ...}
@@ -2337,6 +2416,120 @@
       if (ev.target.id === 'activity-overlay') document.getElementById('activity-overlay').style.display = 'none';
     });
 
+    // ---- Empty-state CTA (when Free user has 0 picked categories) ----
+    function renderEmptyStateInto(el, tabKey) {
+      const headlines = {
+        reviews: 'Pick your categories to see reviews',
+        ranking: 'Pick your categories to see viral candidates',
+        niches: 'Pick your categories to map niches',
+      };
+      el.innerHTML = `
+        <div style="text-align: center; padding: 64px 24px;">
+          <div style="font-size: 48px; margin-bottom: 16px">👋</div>
+          <h2 style="margin: 0 0 8px; font-size: 22px">${headlines[tabKey] || 'Pick your categories'}</h2>
+          <p style="color: var(--muted); max-width: 480px; margin: 0 auto 20px; line-height: 1.5">
+            Free includes up to 5 categories. Reviews, Viral Ranking, and Niches are scoped to your picks — choose them once and the dashboard re-shapes itself.
+          </p>
+          <button class="ob-btn" id="es-open-settings">⚙️ Open settings</button>
+          <p style="margin-top: 16px"><a href="/help" style="color: var(--accent); font-size: 13px">new here? see the guide →</a></p>
+        </div>
+      `;
+      const btn = document.getElementById('es-open-settings');
+      if (btn) btn.onclick = () => openSettingsModal();
+    }
+
+    // ---- Settings modal (edit saved categories) ----
+    let _settingsPicks = new Set();
+    async function openSettingsModal() {
+      const overlay = document.getElementById('settings-overlay');
+      overlay.style.display = 'flex';
+      const cap = userIsFree ? 5 : 33;
+      _settingsPicks = new Set(userPickedCats);
+      document.getElementById('settings-sub').innerHTML = userIsFree
+        ? `Free includes <b>up to 5 categories</b>. Reviews, Niches, and Viral Ranking are scoped to these.`
+        : `Pick any subset to focus your dashboard. Leave empty to see all 33 categories.`;
+      // Lazy-load category list
+      let cats = CATEGORIES_CACHE;
+      if (!cats) {
+        try {
+          const r = await fetch('/api/categories', { cache: 'no-store' });
+          cats = (await r.json()).items || [];
+          CATEGORIES_CACHE = cats;
+        } catch {
+          cats = [];
+        }
+      }
+      const container = document.getElementById('settings-cats');
+      container.innerHTML = cats.map(c =>
+        `<span class="ob-cat-pill ${_settingsPicks.has(c.id) ? 'selected' : ''}" data-id="${escapeHtml(c.id)}">${escapeHtml(c.name)}</span>`
+      ).join('');
+      container.querySelectorAll('.ob-cat-pill').forEach(pill => {
+        pill.onclick = () => {
+          const id = pill.dataset.id;
+          if (_settingsPicks.has(id)) {
+            _settingsPicks.delete(id);
+            pill.classList.remove('selected');
+          } else if (_settingsPicks.size < cap) {
+            _settingsPicks.add(id);
+            pill.classList.add('selected');
+          }
+          document.getElementById('settings-counter').textContent = `Selected ${_settingsPicks.size} / ${cap}`;
+        };
+      });
+      document.getElementById('settings-counter').textContent = `Selected ${_settingsPicks.size} / ${cap}`;
+      document.getElementById('settings-search').oninput = (ev) => {
+        const q = ev.target.value.toLowerCase();
+        container.querySelectorAll('.ob-cat-pill').forEach(p => {
+          p.style.display = p.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      };
+    }
+    document.getElementById('settings-close').onclick = () => {
+      document.getElementById('settings-overlay').style.display = 'none';
+    };
+    document.getElementById('settings-cancel').onclick = () => {
+      document.getElementById('settings-overlay').style.display = 'none';
+    };
+    document.getElementById('settings-overlay').addEventListener('click', (ev) => {
+      if (ev.target.id === 'settings-overlay') document.getElementById('settings-overlay').style.display = 'none';
+    });
+    document.getElementById('settings-save').onclick = async () => {
+      const btn = document.getElementById('settings-save');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/me/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categories: [..._settingsPicks] }),
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'save failed');
+        // Update local state + meta tag so subsequent reads pick up the new set
+        userPickedCats = j.categories || [];
+        if (vfUser) vfUser.dataset.categories = userPickedCats.join(',');
+        document.getElementById('settings-overlay').style.display = 'none';
+        emitNotification('success', `Saved ${userPickedCats.length} categories. Re-scoping…`);
+        // Re-render the current view to reflect new scope
+        setView(currentView, { skipHistory: true });
+      } catch (e) {
+        alert('Could not save: ' + e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+    // Wire menu items
+    const umSettings = document.getElementById('um-settings');
+    if (umSettings) umSettings.onclick = (ev) => {
+      ev.preventDefault();
+      document.getElementById('user-menu').classList.remove('open');
+      openSettingsModal();
+    };
+    const mmSettings = document.getElementById('mm-settings');
+    if (mmSettings) mmSettings.onclick = () => {
+      document.getElementById('mobile-menu').classList.remove('open');
+      openSettingsModal();
+    };
+
     // Tier badge in header
     (() => {
       const tb = document.getElementById('tier-badge');
@@ -2431,13 +2624,13 @@
                 if (picks.has(id)) {
                   picks.delete(id);
                   pill.classList.remove('selected');
-                } else if (picks.size < 3) {
+                } else if (picks.size < 5) {
                   picks.add(id);
                   pill.classList.add('selected');
                 }
                 document.getElementById('ob-counter').textContent = picks.size === 0
-                  ? 'Pick at least 1, max 3'
-                  : `Selected ${picks.size} / 3`;
+                  ? 'Pick at least 1, max 5'
+                  : `Selected ${picks.size} / 5`;
                 document.getElementById('ob-next-2').disabled = picks.size === 0;
               };
             });
@@ -2673,6 +2866,10 @@
     setView(currentView);
     refreshStatus();
     refreshDiscovery();
+    // Auto-open Settings if linked with ?settings=1 (e.g., from /help quick-action)
+    if (new URLSearchParams(window.location.search).get('settings') === '1') {
+      setTimeout(() => openSettingsModal(), 100);
+    }
   })();
   </script>
 </body>

@@ -535,6 +535,18 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_redirect("/", set_cookie=auth_mod.clear_cookie())
             return
 
+        # ---- help page (auth-gated) ----
+        if url.path == "/help" or url.path == "/help/":
+            user = self._current_user()
+            if not user:
+                self._send_redirect("/auth/google/start")
+                return
+            try:
+                self._send_html(200, (Path(__file__).parent / "help.html").read_text())
+            except Exception as e:
+                self._send_html(500, f"<h1>Help page missing</h1><pre>{e}</pre>")
+            return
+
         # ---- public landing page ----
         if url.path in ("/", "/index", "/landing"):
             try:
@@ -637,6 +649,39 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         url = urlparse(self.path)
+
+        # ---- update saved categories (Settings modal posts here) ----
+        if url.path == "/api/me/categories":
+            user = self._current_user()
+            if not user:
+                self._send_json(401, {"ok": False, "error": "not signed in"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", 0) or 0)
+                body = json.loads(self.rfile.read(length) or b"{}") if length else {}
+            except Exception:
+                body = {}
+            cats_in = body.get("categories") or []
+            if not isinstance(cats_in, list):
+                cats_in = []
+            valid_ids = {c["id"] for c in load_categories()}
+            cats = [str(c) for c in cats_in if str(c) in valid_ids]
+            cap = 5 if user.get("plan", "free") == "free" else 33
+            cats = cats[:cap]
+            cats_csv = ",".join(cats)
+            conn = sqlite3.connect(DB_PATH, timeout=30.0)
+            try:
+                conn.execute("PRAGMA busy_timeout=30000")
+                conn.execute(
+                    "UPDATE users SET picked_categories = ? WHERE id = ?",
+                    (cats_csv, user["id"]),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+            auth_mod.log_activity(user["id"], "categories_updated", metadata={"categories": cats})
+            self._send_json(200, {"ok": True, "categories": cats})
+            return
 
         # ---- onboarding ----
         if url.path == "/api/onboarding/complete":

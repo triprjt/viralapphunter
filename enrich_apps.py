@@ -89,6 +89,7 @@ SELECT
   e.size,
   e.icon,
   d.matched_terms,
+  d.categories,
   CASE
     WHEN e.released IS NOT NULL AND e.min_installs IS NOT NULL THEN
       CAST(e.min_installs AS REAL) /
