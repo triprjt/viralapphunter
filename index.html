@@ -207,6 +207,20 @@
     .user-menu-item:hover { background: var(--panel-2); text-decoration: none; }
     .user-menu-item.danger { color: var(--bad); }
 
+    /* ---- Mobile hamburger menu (hidden on desktop, shown ≤720px) ---- */
+    .mobile-menu-toggle { display: none; }
+    .mobile-menu { display: none; position: fixed; top: 56px; right: 12px; width: calc(100vw - 24px); max-width: 320px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); z-index: 200; }
+    .mobile-menu.open { display: block; }
+    .mobile-menu-header { padding: 12px 14px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+    .mobile-menu-header strong { display: block; font-size: 13px; color: var(--text); }
+    .mobile-menu-header span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+    .mobile-menu-tier-row { padding: 8px 14px 12px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+    .mobile-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 12px 14px; font-size: 14px; cursor: pointer; border-radius: 8px; color: var(--text); text-decoration: none; background: none; border: none; text-align: left; font-family: inherit; }
+    .mobile-menu-item:hover { background: var(--panel-2); text-decoration: none; }
+    .mobile-menu-item.danger { color: var(--bad); }
+    .mobile-menu-item .mm-left { display: inline-flex; align-items: center; gap: 8px; }
+    .mobile-menu-item .mm-right { color: var(--muted); font-size: 12px; }
+
     /* ---- Activity panel (modal) ---- */
     .activity-overlay { position: fixed; inset: 0; background: rgba(11,18,32,0.78); backdrop-filter: blur(6px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .activity-modal { background: var(--bg); color: var(--text); border-radius: 14px; max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.5); border: 1px solid var(--border); position: relative; }
@@ -310,8 +324,11 @@
       #dbmeta { display: none; }
       header > div:last-child { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
       .tier-badge, .disco-pill, .notif-bell { white-space: nowrap; }
-      .tier-badge { font-size: 11px; padding: 4px 10px; }
-      .theme-toggle { width: 28px; height: 28px; font-size: 13px; }
+      /* On mobile, theme toggle / tier badge / user-menu avatar consolidate
+         into the hamburger menu — hide their desktop versions. Notif bell stays. */
+      .theme-toggle, #tier-badge, #user-menu-toggle, #user-menu { display: none !important; }
+      .mobile-menu-toggle { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; padding: 0; transition: border-color 0.12s, background 0.12s; }
+      .mobile-menu-toggle:hover { border-color: var(--accent); background: var(--panel-2); }
       .notif-bell { padding: 3px 9px; font-size: 12px; }
       .notif-badge { top: -5px; right: -5px; padding: 1px 5px; font-size: 9px; min-width: 16px; }
       .disco-pill { padding: 3px 10px; font-size: 11px; }
@@ -390,6 +407,28 @@
         </div>
         <a class="user-menu-item" id="um-activity">📜 <span>Activity log</span></a>
         <a class="user-menu-item danger" href="/auth/logout">🚪 <span>Sign out</span></a>
+      </div>
+      <!-- Mobile-only hamburger menu (replaces theme/tier/avatar on small viewports) -->
+      <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-label="Menu" title="Menu">☰</button>
+      <div id="mobile-menu" class="mobile-menu">
+        <div class="mobile-menu-header">
+          <strong id="mm-name">…</strong>
+          <span id="mm-email">…</span>
+        </div>
+        <div class="mobile-menu-tier-row">
+          <span id="mm-tier" class="tier-badge tier-free">FREE</span>
+        </div>
+        <button class="mobile-menu-item" id="mm-theme">
+          <span class="mm-left"><span id="mm-theme-icon">🌙</span> Change UI theme</span>
+          <span class="mm-right" id="mm-theme-label">Dark</span>
+        </button>
+        <button class="mobile-menu-item" id="mm-activity">
+          <span class="mm-left">📜 Activity log</span>
+          <span class="mm-right">→</span>
+        </button>
+        <a class="mobile-menu-item danger" href="/auth/logout">
+          <span class="mm-left">🚪 Sign out</span>
+        </a>
       </div>
     </div>
   </header>
@@ -2075,6 +2114,61 @@
         menu.classList.remove('open');
         openActivityModal();
       };
+    })();
+
+    // ---- Mobile hamburger menu ----
+    (() => {
+      const toggle = document.getElementById('mobile-menu-toggle');
+      const menu = document.getElementById('mobile-menu');
+      if (!toggle || !menu) return;
+      // Hydrate header
+      document.getElementById('mm-name').textContent = (vfUser?.dataset.name || (vfUser?.dataset.email || '').split('@')[0] || 'You');
+      document.getElementById('mm-email').textContent = vfUser?.dataset.email || '';
+      // Tier pill in mobile menu
+      const tier = document.getElementById('mm-tier');
+      tier.classList.remove('tier-free', 'tier-solo', 'tier-pro', 'tier-studio');
+      tier.classList.add('tier-' + userPlan);
+      if (userPlan === 'free') tier.innerHTML = 'FREE<span class="tb-extra"> · ✨ Upgrade</span>';
+      else if (userPlan === 'solo') tier.textContent = 'SOLO';
+      else if (userPlan === 'pro') tier.textContent = 'PRO';
+      else if (userPlan === 'studio') tier.textContent = 'STUDIO';
+      tier.style.cursor = userIsFree ? 'pointer' : 'default';
+      tier.onclick = () => { if (userIsFree) { menu.classList.remove('open'); showUpgrade(); } };
+
+      // Theme row inside the menu
+      function syncThemeRow() {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        document.getElementById('mm-theme-icon').textContent = cur === 'dark' ? '🌙' : '☀️';
+        document.getElementById('mm-theme-label').textContent = cur === 'dark' ? 'Dark' : 'Light';
+      }
+      syncThemeRow();
+      document.getElementById('mm-theme').onclick = () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = cur === 'light' ? 'dark' : 'light';
+        if (next === 'light') document.documentElement.dataset.theme = 'light';
+        else delete document.documentElement.dataset.theme;
+        try { localStorage.setItem('vf-theme', next); } catch {}
+        syncThemeRow();
+        // also update the desktop toggle's icon if visible
+        const dIcon = document.getElementById('theme-icon');
+        if (dIcon) dIcon.textContent = next === 'dark' ? '🌙' : '☀️';
+      };
+
+      // Activity row reuses the same modal as the desktop user menu
+      document.getElementById('mm-activity').onclick = () => {
+        menu.classList.remove('open');
+        openActivityModal();
+      };
+
+      toggle.onclick = (ev) => {
+        ev.stopPropagation();
+        menu.classList.toggle('open');
+      };
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('#mobile-menu') && !ev.target.closest('#mobile-menu-toggle')) {
+          menu.classList.remove('open');
+        }
+      });
     })();
 
     // ---- Activity modal ----
