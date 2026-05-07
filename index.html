@@ -335,6 +335,14 @@
     button.fetch-btn.locked, button.dev-link.locked { color: var(--muted); border-style: dashed; cursor: pointer; }
     button.fetch-btn.locked:hover { border-color: #FF6B6B; color: var(--text); }
 
+    /* ---- Cell clamp (universal overflow handler for long table content) ---- */
+    .cell-clamp { position: relative; max-height: 64px; overflow: hidden; transition: max-height 0.18s ease; }
+    .cell-clamp.expanded { max-height: 320px; overflow-y: auto; }
+    /* Subtle fade at the bottom so the user senses there's more */
+    .cell-clamp:not(.expanded)::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px; background: linear-gradient(180deg, transparent, var(--panel)); pointer-events: none; }
+    button.cell-clamp-btn { display: inline-block; margin-top: 4px; padding: 2px 8px; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
+    button.cell-clamp-btn:hover { border-color: var(--accent); background: var(--panel-2); }
+
     /* ---- Mobile (≤ 720px) ---- */
     .tb-extra { display: inline; }
     @media (max-width: 720px) {
@@ -719,7 +727,7 @@
                   <td>${dateStr}${ver?`<br><span class="pkg">v${escapeHtml(ver)}</span>`:''}</td>
                   <td>${escapeHtml(user||'')}</td>
                   <td><span class="pkg">${escapeHtml(pkg)}</span></td>
-                  <td class="text">${escapeHtml(text||'')}${replyHtml}</td>
+                  <td class="text"><div class="cell-clamp">${escapeHtml(text||'')}</div>${replyHtml}</td>
                   <td>${thumbs||0}</td>
                 </tr>`;
               }).join('')}
@@ -744,6 +752,7 @@
             btn.textContent = isHidden ? '↪︎ Hide developer reply' : '↩︎ Show developer reply';
           };
         });
+        attachClampButtons($('table-wrap'));
       }
 
       $('pageinfo').textContent = `Page ${state.page+1} / ${pages}`;
@@ -1292,7 +1301,7 @@
                   <td class="${ratingClass}">${score ? score.toFixed(2) : '–'}</td>
                   <td>${escapeHtml(installs||'–')}</td>
                   <td>${priceLabel}</td>
-                  <td><div class="terms">${termPills}</div></td>
+                  <td><div class="terms cell-clamp">${termPills}</div></td>
                   <td><a class="app-link" href="${url}" target="_blank" rel="noopener">Open ↗</a></td>
                 </tr>`;
               }).join('')}
@@ -1656,14 +1665,14 @@
                   <td>
                     <div class="app-cell">
                       ${r.icon ? `<img src="${escapeHtml(r.icon)}" alt="" loading="lazy" />` : '<div style="width:40px;height:40px"></div>'}
-                      <div class="meta">
+                      <div class="meta cell-clamp">
                         <b>${escapeHtml(r.title||r.package_name)}</b>
                         <span>${r.genre?escapeHtml(r.genre):''}</span>
                         <span class="pkg">${escapeHtml(r.package_name)}</span>
                       </div>
                     </div>
                   </td>
-                  <td>${devCell}</td>
+                  <td><div class="cell-clamp">${devCell}</div></td>
                   <td><b>${r.installs_per_month!=null?Math.round(r.installs_per_month).toLocaleString():'–'}</b></td>
                   <td>${escapeHtml(r.installs||'–')}</td>
                   <td>${r.released||'–'}</td>
@@ -1671,7 +1680,7 @@
                   <td>${r.reviews!=null?r.reviews.toLocaleString():'–'}</td>
                   <td>${r.days_since_update!=null?r.days_since_update+'d':'–'}</td>
                   <td>${moneyBadges||'–'}</td>
-                  <td><div class="terms">${termPills}</div></td>
+                  <td><div class="terms cell-clamp">${termPills}</div></td>
                   <td><button class="fetch-btn" data-pkg="${escapeHtml(r.package_name)}"></button></td>
                   <td><a class="app-link" href="${url}" target="_blank" rel="noopener">Open ↗</a></td>
                 </tr>`;
@@ -1734,6 +1743,7 @@
       $('r-pageinfo').textContent = `Page ${rankState.page+1} / ${pages}`;
       $('r-prev').disabled = rankState.page === 0;
       $('r-next').disabled = rankState.page >= pages - 1;
+      attachClampButtons($('r-table-wrap'));
     }
 
     let CATEGORIES_CACHE = null;     // raw response from /api/categories
@@ -2182,6 +2192,29 @@
       else if (v === 'admin') renderAdminView();
       renderBreadcrumb();
     }
+    // ---- Cell-clamp: scan a rendered table for .cell-clamp divs and add a "more / less" button ----
+    function attachClampButtons(rootEl) {
+      if (!rootEl) return;
+      rootEl.querySelectorAll('.cell-clamp').forEach(el => {
+        if (el.dataset.clampWired === '1') return;
+        // Defer measurement to next frame so layout has settled
+        requestAnimationFrame(() => {
+          if (el.scrollHeight - el.clientHeight <= 2) return; // content fits, no button needed
+          el.dataset.clampWired = '1';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cell-clamp-btn';
+          btn.textContent = 'show more ↓';
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            const expanded = el.classList.toggle('expanded');
+            btn.textContent = expanded ? 'show less ↑' : 'show more ↓';
+          };
+          el.insertAdjacentElement('afterend', btn);
+        });
+      });
+    }
+
     // ---- Avatar helpers (used by both the desktop and mobile menus) ----
     function smileyAvatarSvg() {
       return `
