@@ -207,6 +207,25 @@
     .user-menu-item:hover { background: var(--panel-2); text-decoration: none; }
     .user-menu-item.danger { color: var(--bad); }
 
+    /* ---- Avatar shown next to user name in menus ---- */
+    .menu-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, var(--mint), var(--sunshine)); display: inline-flex; align-items: center; justify-content: center; }
+    .menu-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .menu-avatar svg { width: 100%; height: 100%; animation: smiley-bob 3.4s ease-in-out infinite; }
+    @keyframes smiley-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+    .menu-avatar svg .eye { transform-origin: center; }
+
+    /* user-menu (desktop dropdown) header layout */
+    .user-menu-header.with-avatar { display: flex; gap: 12px; align-items: center; }
+    .user-menu-header.with-avatar .meta { min-width: 0; }
+    .user-menu-header.with-avatar .meta strong { display: block; font-size: 14px; color: var(--text); }
+    .user-menu-header.with-avatar .meta span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+
+    /* mobile-menu header layout */
+    .mobile-menu-header.with-avatar { display: flex; gap: 12px; align-items: center; }
+    .mobile-menu-header.with-avatar .meta { min-width: 0; }
+    .mobile-menu-header.with-avatar .meta strong { display: block; font-size: 14px; color: var(--text); }
+    .mobile-menu-header.with-avatar .meta span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+
     /* ---- Mobile hamburger menu (hidden on desktop, shown ≤720px) ---- */
     .mobile-menu-toggle { display: none; }
     .mobile-menu { display: none; position: fixed; top: 56px; right: 12px; width: calc(100vw - 24px); max-width: 320px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); z-index: 200; }
@@ -401,9 +420,12 @@
       </div>
       <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-label="User menu" title="User menu" style="display:none">?</button>
       <div id="user-menu" class="user-menu">
-        <div class="user-menu-header">
-          <strong id="um-name">…</strong>
-          <span id="um-email">…</span>
+        <div class="user-menu-header with-avatar">
+          <span class="menu-avatar" id="um-avatar"></span>
+          <span class="meta">
+            <strong id="um-name">…</strong>
+            <span id="um-email">…</span>
+          </span>
         </div>
         <a class="user-menu-item" id="um-activity">📜 <span>Activity log</span></a>
         <a class="user-menu-item danger" href="/auth/logout">🚪 <span>Sign out</span></a>
@@ -411,9 +433,12 @@
       <!-- Mobile-only hamburger menu (replaces theme/tier/avatar on small viewports) -->
       <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-label="Menu" title="Menu">☰</button>
       <div id="mobile-menu" class="mobile-menu">
-        <div class="mobile-menu-header">
-          <strong id="mm-name">…</strong>
-          <span id="mm-email">…</span>
+        <div class="mobile-menu-header with-avatar">
+          <span class="menu-avatar" id="mm-avatar"></span>
+          <span class="meta">
+            <strong id="mm-name">…</strong>
+            <span id="mm-email">…</span>
+          </span>
         </div>
         <div class="mobile-menu-tier-row">
           <span id="mm-tier" class="tier-badge tier-free">FREE</span>
@@ -2051,6 +2076,50 @@
       else if (v === 'admin') renderAdminView();
       renderBreadcrumb();
     }
+    // ---- Avatar helpers (used by both the desktop and mobile menus) ----
+    function smileyAvatarSvg() {
+      return `
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <radialGradient id="smiley-face" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#FFE49A"/>
+      <stop offset="60%" stop-color="#FFD23F"/>
+      <stop offset="100%" stop-color="#FF9966"/>
+    </radialGradient>
+  </defs>
+  <circle cx="32" cy="32" r="28" fill="url(#smiley-face)"/>
+  <!-- hair -->
+  <path d="M10 25 Q14 8 32 8 Q50 8 54 25 Q52 17 44 13 Q38 10 32 10 Q26 10 20 13 Q12 17 10 25 Z" fill="#0B1220" opacity="0.85"/>
+  <!-- cheek blushes -->
+  <circle cx="18" cy="40" r="3" fill="#FF6B6B" opacity="0.4"/>
+  <circle cx="46" cy="40" r="3" fill="#FF6B6B" opacity="0.4"/>
+  <!-- eyes (blink animation, then long stare) -->
+  <ellipse class="eye" cx="22" cy="32" rx="2.4" ry="3.2" fill="#0B1220">
+    <animate attributeName="ry" values="3.2;3.2;3.2;3.2;0.3;3.2;3.2;3.2;3.2;3.2" dur="4.5s" repeatCount="indefinite"/>
+  </ellipse>
+  <ellipse class="eye" cx="42" cy="32" rx="2.4" ry="3.2" fill="#0B1220">
+    <animate attributeName="ry" values="3.2;3.2;3.2;3.2;0.3;3.2;3.2;3.2;3.2;3.2" dur="4.5s" repeatCount="indefinite"/>
+  </ellipse>
+  <!-- smile -->
+  <path d="M21 43 Q32 53 43 43" stroke="#0B1220" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+</svg>`;
+    }
+
+    function paintAvatar(el, picture) {
+      if (!el) return;
+      el.innerHTML = '';
+      if (picture) {
+        const img = document.createElement('img');
+        img.src = picture;
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        img.onerror = () => { el.innerHTML = smileyAvatarSvg(); };
+        el.appendChild(img);
+      } else {
+        el.innerHTML = smileyAvatarSvg();
+      }
+    }
+
     // ---- User identity + plan from server-injected meta ----
     const vfUser = document.querySelector('meta[name="vf-user"]');
     const userPlan = (vfUser?.dataset.plan || 'free').toLowerCase();
@@ -2090,14 +2159,21 @@
       const email = vfUser?.dataset.email || '';
       const name = vfUser?.dataset.name || '';
       const picture = vfUser?.dataset.picture || '';
-      // Hydrate the dropdown header
+      // Hydrate the dropdown header (name + email + larger avatar inside the menu)
       document.getElementById('um-name').textContent = name || email.split('@')[0] || 'You';
       document.getElementById('um-email').textContent = email;
-      // Avatar: picture if available, else initials over the gradient
+      paintAvatar(document.getElementById('um-avatar'), picture);
+      // Header button avatar (smaller, in the top bar): picture if available, else animated smiley
+      btn.innerHTML = '';
       if (picture) {
-        btn.innerHTML = `<img src="${picture}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.outerHTML='${(name || email).charAt(0).toUpperCase()}';" />`;
+        const img = document.createElement('img');
+        img.src = picture;
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        img.onerror = () => { btn.innerHTML = smileyAvatarSvg(); };
+        btn.appendChild(img);
       } else {
-        btn.textContent = (name || email).charAt(0).toUpperCase() || '?';
+        btn.innerHTML = smileyAvatarSvg();
       }
       btn.style.display = 'inline-flex';
       btn.onclick = (ev) => {
@@ -2121,9 +2197,10 @@
       const toggle = document.getElementById('mobile-menu-toggle');
       const menu = document.getElementById('mobile-menu');
       if (!toggle || !menu) return;
-      // Hydrate header
+      // Hydrate header (avatar + name + email)
       document.getElementById('mm-name').textContent = (vfUser?.dataset.name || (vfUser?.dataset.email || '').split('@')[0] || 'You');
       document.getElementById('mm-email').textContent = vfUser?.dataset.email || '';
+      paintAvatar(document.getElementById('mm-avatar'), vfUser?.dataset.picture || '');
       // Tier pill in mobile menu
       const tier = document.getElementById('mm-tier');
       tier.classList.remove('tier-free', 'tier-solo', 'tier-pro', 'tier-studio');
