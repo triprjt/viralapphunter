@@ -631,6 +631,12 @@
         <span>avg <b>${avg ? avg.toFixed(2) : '–'}</b> ★</span>
         <span>${minD ? minD.slice(0,10) : ''} → ${maxD ? maxD.slice(0,10) : ''}</span>
       `;
+      // Keep the collapsed-filter summary chip in sync with current state
+      const fbR = document.querySelector('.filters-bar > span');
+      if (fbR) {
+        const sum = reviewsFilterSummary();
+        fbR.innerHTML = 'Filters' + (sum ? ' · ' + escapeHtml(sum) : '');
+      }
 
       // table
       if (!rows.length) {
@@ -1696,7 +1702,14 @@
       const cat = cats.find(c => c.id === nicheState.categoryId) || cats[0];
       nicheState.categoryId = cat.id;
 
+      const sortLabels = {
+        count: 'Most competitive', opportunity: 'Best opportunity',
+        avgInstalls: 'Highest avg installs', avgScore: 'Highest avg rating',
+      };
+      const nicheSummary = `${cat.name}${nicheState.sort ? ' · ' + (sortLabels[nicheState.sort] || nicheState.sort) : ''}`;
+
       content.innerHTML = `
+        ${filtersWrapStart(nicheSummary)}
         <div class="filters">
           <label>Category
             <select id="n-cat">
@@ -1712,9 +1725,11 @@
             </select>
           </label>
         </div>
+        ${filtersWrapEnd()}
         <div class="stats" id="n-stats"></div>
         <div class="table-scroll" id="n-table-wrap"></div>
       `;
+      bindFiltersToggle();
 
       $('n-cat').onchange = async (ev) => {
         const newId = ev.target.value;
@@ -1891,8 +1906,18 @@
       `;
     }
 
+    function reviewsFilterSummary() {
+      const parts = [];
+      if (state.table && state.table !== (tables[0] || '')) parts.push(state.table);
+      if (state.pkg && state.pkg !== 'all') parts.push(state.pkg);
+      if (state.ratings && state.ratings.size && state.ratings.size < 5) parts.push([...state.ratings].sort().join('') + '★');
+      if (state.search && state.search.trim()) parts.push('"' + state.search.trim() + '"');
+      return parts.join(' · ');
+    }
+
     function renderReviewsView() {
       content.innerHTML = `
+        ${filtersWrapStart(reviewsFilterSummary())}
         <div class="filters">
           <label>Source table
             <select id="f-table">${tables.map(t => `<option ${t===state.table?'selected':''}>${t}</option>`).join('')}</select>
@@ -1914,6 +1939,7 @@
             </select>
           </label>
         </div>
+        ${filtersWrapEnd()}
         <div class="stats" id="stats"></div>
         <div class="table-scroll" id="table-wrap"></div>
         <div class="pager">
@@ -1922,6 +1948,7 @@
           <button id="next">Next →</button>
         </div>
       `;
+      bindFiltersToggle();
 
       $('f-table').onchange = e => { state.table = e.target.value; state.pkg = 'all'; state.page = 0; refreshPkgOptions(); render(); };
       $('f-pkg').onchange = e => { state.pkg = e.target.value; state.page = 0; render(); };
