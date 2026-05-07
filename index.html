@@ -335,13 +335,16 @@
     button.fetch-btn.locked, button.dev-link.locked { color: var(--muted); border-style: dashed; cursor: pointer; }
     button.fetch-btn.locked:hover { border-color: #FF6B6B; color: var(--text); }
 
-    /* ---- Cell clamp (universal overflow handler for long table content) ---- */
-    .cell-clamp { position: relative; max-height: 38px; overflow: hidden; transition: max-height 0.18s ease; }
-    .cell-clamp.expanded { max-height: 280px; overflow-y: auto; padding-bottom: 4px; }
-    /* Visible fade at the bottom so the eye sees something is hidden */
-    .cell-clamp:not(.expanded)::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 22px; background: linear-gradient(180deg, transparent 0%, var(--panel) 80%); pointer-events: none; }
-    button.cell-clamp-btn { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 3px 10px; background: var(--panel-2); color: var(--accent); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1; }
-    button.cell-clamp-btn:hover { border-color: var(--accent); background: var(--panel); }
+    /* ---- Fixed-width tables: columns are deterministic, rows are uniform-height ---- */
+    .table-scroll table { table-layout: fixed; width: max-content; min-width: 100%; }
+    .table-scroll td { max-height: 64px; overflow: hidden; position: relative; word-wrap: break-word; vertical-align: top; }
+    .table-scroll td.cell-expanded { max-height: 280px; overflow-y: auto; }
+    /* Soft fade at the bottom of overflowed cells (only when collapsed) */
+    .table-scroll td.cell-overflow:not(.cell-expanded)::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 18px; background: linear-gradient(180deg, transparent 0%, var(--panel) 85%); pointer-events: none; z-index: 0; }
+    /* Tiny corner + icon (turns into − when expanded) */
+    button.cell-expand-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; padding: 0; border-radius: 50%; background: var(--panel-2); color: var(--accent); border: 1px solid var(--border); font-size: 14px; font-weight: 700; cursor: pointer; line-height: 1; display: inline-flex; align-items: center; justify-content: center; z-index: 2; transition: background 0.12s, border-color 0.12s, transform 0.12s; }
+    button.cell-expand-btn:hover { border-color: var(--accent); background: var(--panel); transform: scale(1.08); }
+    .table-scroll td.cell-expanded button.cell-expand-btn { color: var(--coral); }
 
     /* ---- Mobile (≤ 720px) ---- */
     .tb-extra { display: inline; }
@@ -703,6 +706,9 @@
         const arrow = c => state.sort === c ? (state.dir === 'asc' ? ' ▲' : ' ▼') : '';
         $('table-wrap').innerHTML = `
           <table>
+            <colgroup>
+              <col style="width:100px"><col style="width:120px"><col style="width:140px"><col style="width:200px"><col style="width:360px"><col style="width:60px">
+            </colgroup>
             <thead>
               <tr>
                 <th data-sort="rating">Rating${arrow('rating')}</th>
@@ -727,7 +733,7 @@
                   <td>${dateStr}${ver?`<br><span class="pkg">v${escapeHtml(ver)}</span>`:''}</td>
                   <td>${escapeHtml(user||'')}</td>
                   <td><span class="pkg">${escapeHtml(pkg)}</span></td>
-                  <td class="text"><div class="cell-clamp">${escapeHtml(text||'')}</div>${replyHtml}</td>
+                  <td class="text">${escapeHtml(text||'')}${replyHtml}</td>
                   <td>${thumbs||0}</td>
                 </tr>`;
               }).join('')}
@@ -1301,7 +1307,7 @@
                   <td class="${ratingClass}">${score ? score.toFixed(2) : '–'}</td>
                   <td>${escapeHtml(installs||'–')}</td>
                   <td>${priceLabel}</td>
-                  <td><div class="terms cell-clamp">${termPills}</div></td>
+                  <td><div class="terms">${termPills}</div></td>
                   <td><a class="app-link" href="${url}" target="_blank" rel="noopener">Open ↗</a></td>
                 </tr>`;
               }).join('')}
@@ -1630,6 +1636,9 @@
         const arrow = c => rankState.sort === c ? (rankState.dir === 'asc' ? ' ▲' : ' ▼') : '';
         $('r-table-wrap').innerHTML = `
           <table>
+            <colgroup>
+              <col style="width:64px"><col style="width:280px"><col style="width:140px"><col style="width:96px"><col style="width:110px"><col style="width:100px"><col style="width:70px"><col style="width:80px"><col style="width:80px"><col style="width:130px"><col style="width:140px"><col style="width:100px"><col style="width:70px">
+            </colgroup>
             <thead>
               <tr>
                 <th data-sort="viral_score">Viral${arrow('viral_score')}</th>
@@ -1665,14 +1674,14 @@
                   <td>
                     <div class="app-cell">
                       ${r.icon ? `<img src="${escapeHtml(r.icon)}" alt="" loading="lazy" />` : '<div style="width:40px;height:40px"></div>'}
-                      <div class="meta cell-clamp">
+                      <div class="meta">
                         <b>${escapeHtml(r.title||r.package_name)}</b>
                         <span>${r.genre?escapeHtml(r.genre):''}</span>
                         <span class="pkg">${escapeHtml(r.package_name)}</span>
                       </div>
                     </div>
                   </td>
-                  <td><div class="cell-clamp">${devCell}</div></td>
+                  <td>${devCell}</td>
                   <td><b>${r.installs_per_month!=null?Math.round(r.installs_per_month).toLocaleString():'–'}</b></td>
                   <td>${escapeHtml(r.installs||'–')}</td>
                   <td>${r.released||'–'}</td>
@@ -1680,7 +1689,7 @@
                   <td>${r.reviews!=null?r.reviews.toLocaleString():'–'}</td>
                   <td>${r.days_since_update!=null?r.days_since_update+'d':'–'}</td>
                   <td>${moneyBadges||'–'}</td>
-                  <td><div class="terms cell-clamp">${termPills}</div></td>
+                  <td><div class="terms">${termPills}</div></td>
                   <td><button class="fetch-btn" data-pkg="${escapeHtml(r.package_name)}"></button></td>
                   <td><a class="app-link" href="${url}" target="_blank" rel="noopener">Open ↗</a></td>
                 </tr>`;
@@ -1871,6 +1880,9 @@
 
         $('n-table-wrap').innerHTML = `
           <table>
+            <colgroup>
+              <col style="width:110px"><col style="width:220px"><col style="width:80px"><col style="width:110px"><col style="width:130px"><col style="width:90px">
+            </colgroup>
             <thead><tr><th></th><th>Niche</th><th># apps</th><th>Avg installs</th><th>Top app installs</th><th>Avg rating</th></tr></thead>
             <tbody>
               ${sorted.map(([t,c2,avg,mx,sc]) => `<tr>
@@ -1906,6 +1918,7 @@
             window.scrollTo({ top: 0, behavior: 'auto' });
           };
         });
+        attachClampButtons($('n-table-wrap'));
       }
       rerender();
     }
@@ -2192,32 +2205,37 @@
       else if (v === 'admin') renderAdminView();
       renderBreadcrumb();
     }
-    // ---- Cell-clamp: scan a rendered table for .cell-clamp divs and add a "more / less" button ----
+    // ---- Cell expand: scan rendered table cells, mark overflowing td's with a + icon ----
     function attachClampButtons(rootEl) {
       if (!rootEl) return;
-      const measureAndAttach = (el) => {
-        if (el.dataset.clampWired === '1') return;
-        if (el.scrollHeight - el.clientHeight <= 2) return; // content fits, no button needed
-        el.dataset.clampWired = '1';
+      const measureAndAttach = (td) => {
+        if (td.dataset.expandWired === '1') return;
+        if (td.scrollHeight - td.clientHeight <= 2) return; // content fits, no icon
+        td.dataset.expandWired = '1';
+        td.classList.add('cell-overflow');
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'cell-clamp-btn';
-        btn.textContent = 'show more ↓';
+        btn.className = 'cell-expand-btn';
+        btn.textContent = '+';
+        btn.title = 'Expand cell';
+        btn.setAttribute('aria-label', 'Expand cell');
         btn.onclick = (ev) => {
           ev.stopPropagation();
-          const expanded = el.classList.toggle('expanded');
-          btn.textContent = expanded ? 'show less ↑' : 'show more ↓';
+          const expanded = td.classList.toggle('cell-expanded');
+          btn.textContent = expanded ? '−' : '+';
+          btn.title = expanded ? 'Collapse cell' : 'Expand cell';
         };
-        el.insertAdjacentElement('afterend', btn);
+        td.appendChild(btn);
       };
-      rootEl.querySelectorAll('.cell-clamp').forEach(el => {
+      // Measure every td inside the table — the td itself is the clamp container now
+      rootEl.querySelectorAll('table td').forEach(td => {
         // First measure on next frame
-        requestAnimationFrame(() => measureAndAttach(el));
+        requestAnimationFrame(() => measureAndAttach(td));
         // Re-measure once after a short delay (catches async image loads inside the cell)
-        setTimeout(() => measureAndAttach(el), 250);
+        setTimeout(() => measureAndAttach(td), 250);
         // Also re-measure when any child <img> loads
-        el.querySelectorAll('img').forEach(img => {
-          if (!img.complete) img.addEventListener('load', () => measureAndAttach(el), { once: true });
+        td.querySelectorAll('img').forEach(img => {
+          if (!img.complete) img.addEventListener('load', () => measureAndAttach(td), { once: true });
         });
       });
     }
