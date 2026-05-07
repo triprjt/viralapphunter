@@ -337,6 +337,11 @@
 
     /* ---- Fixed-width tables: columns are deterministic, rows are uniform-height ---- */
     .table-scroll table { table-layout: fixed; border-collapse: collapse; }
+    .table-scroll th { font-size: 10px; letter-spacing: 0.02em; padding: 8px 10px; }
+    .table-scroll th .th-inner { display: flex; align-items: center; gap: 4px; min-width: 0; }
+    .table-scroll th .th-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+    .table-scroll th .th-arrow { flex-shrink: 0; color: var(--accent); font-size: 9px; line-height: 1; }
+    .table-scroll th .th-arrow:empty { display: none; }
     .table-scroll td { max-height: 64px; overflow: hidden; position: relative; word-wrap: break-word; vertical-align: top; }
     .table-scroll td.cell-expanded { max-height: 280px; overflow-y: auto; }
     /* Soft fade at the bottom of overflowed cells (only when collapsed) */
@@ -703,7 +708,8 @@
       if (!rows.length) {
         $('table-wrap').innerHTML = `<div class="empty">No reviews match these filters.</div>`;
       } else {
-        const arrow = c => state.sort === c ? (state.dir === 'asc' ? ' ▲' : ' ▼') : '';
+        const arrow = c => state.sort === c ? (state.dir === 'asc' ? '▲' : '▼') : '';
+        const th = (s, t) => `<th data-sort="${s}"><div class="th-inner"><span class="th-title">${t}</span><span class="th-arrow">${arrow(s)}</span></div></th>`;
         $('table-wrap').innerHTML = `
           <table style="width:980px">
             <colgroup>
@@ -711,12 +717,12 @@
             </colgroup>
             <thead>
               <tr>
-                <th data-sort="rating">Rating${arrow('rating')}</th>
-                <th data-sort="posted_at">Posted${arrow('posted_at')}</th>
-                <th data-sort="user_name">User${arrow('user_name')}</th>
-                <th data-sort="package_name">App${arrow('package_name')}</th>
-                <th>Review</th>
-                <th data-sort="thumbs_up">👍${arrow('thumbs_up')}</th>
+                ${th('rating', 'Rating')}
+                ${th('posted_at', 'Posted')}
+                ${th('user_name', 'User')}
+                ${th('package_name', 'App')}
+                <th><div class="th-inner"><span class="th-title">Review</span></div></th>
+                ${th('thumbs_up', '👍')}
               </tr>
             </thead>
             <tbody>
@@ -1633,7 +1639,9 @@
       if (!pageRows.length) {
         $('r-table-wrap').innerHTML = `<div class="empty">No apps match these filters.</div>`;
       } else {
-        const arrow = c => rankState.sort === c ? (rankState.dir === 'asc' ? ' ▲' : ' ▼') : '';
+        const arrow = c => rankState.sort === c ? (rankState.dir === 'asc' ? '▲' : '▼') : '';
+        const th = (s, t) => `<th data-sort="${s}"><div class="th-inner"><span class="th-title">${t}</span><span class="th-arrow">${arrow(s)}</span></div></th>`;
+        const thStatic = (t) => `<th><div class="th-inner"><span class="th-title">${t}</span></div></th>`;
         $('r-table-wrap').innerHTML = `
           <table style="width:1460px">
             <colgroup>
@@ -1641,19 +1649,19 @@
             </colgroup>
             <thead>
               <tr>
-                <th data-sort="viral_score">Viral${arrow('viral_score')}</th>
-                <th data-sort="title">App${arrow('title')}</th>
-                <th data-sort="developer">Developer${arrow('developer')}</th>
-                <th data-sort="installs_per_month">Installs/mo${arrow('installs_per_month')}</th>
-                <th data-sort="min_installs">Total${arrow('min_installs')}</th>
-                <th data-sort="released">Released${arrow('released')}</th>
-                <th data-sort="score">Rating${arrow('score')}</th>
-                <th data-sort="reviews">Reviews${arrow('reviews')}</th>
-                <th data-sort="days_since_update">Last upd${arrow('days_since_update')}</th>
-                <th data-sort="_money_score">Money${arrow('_money_score')}</th>
-                <th data-sort="_niche_first">Niche${arrow('_niche_first')}</th>
-                <th>Reviews</th>
-                <th>Link</th>
+                ${th('viral_score', 'Viral')}
+                ${th('title', 'App')}
+                ${th('developer', 'Developer')}
+                ${th('installs_per_month', 'Installs/mo')}
+                ${th('min_installs', 'Total')}
+                ${th('released', 'Released')}
+                ${th('score', 'Rating')}
+                ${th('reviews', 'Reviews')}
+                ${th('days_since_update', 'Last upd')}
+                ${th('_money_score', 'Money')}
+                ${th('_niche_first', 'Niche')}
+                ${thStatic('Reviews')}
+                ${thStatic('Link')}
               </tr>
             </thead>
             <tbody>
@@ -1883,7 +1891,14 @@
             <colgroup>
               <col style="width:110px"><col style="width:220px"><col style="width:80px"><col style="width:110px"><col style="width:130px"><col style="width:90px">
             </colgroup>
-            <thead><tr><th></th><th>Niche</th><th># apps</th><th>Avg installs</th><th>Top app installs</th><th>Avg rating</th></tr></thead>
+            <thead><tr>
+              <th></th>
+              <th><div class="th-inner"><span class="th-title">Niche</span></div></th>
+              <th><div class="th-inner"><span class="th-title"># apps</span></div></th>
+              <th><div class="th-inner"><span class="th-title">Avg installs</span></div></th>
+              <th><div class="th-inner"><span class="th-title">Top app installs</span></div></th>
+              <th><div class="th-inner"><span class="th-title">Avg rating</span></div></th>
+            </tr></thead>
             <tbody>
               ${sorted.map(([t,c2,avg,mx,sc]) => `<tr>
                 <td><button class="fetch-btn" data-niche="${escapeHtml(t)}">View apps →</button></td>
