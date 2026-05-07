@@ -92,6 +92,8 @@
     td.text { max-width: 600px; }
     td.text .reply { margin-top: 8px; padding: 8px 10px; background: var(--panel-2); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 12px; color: var(--muted); }
     td.text .reply b { color: var(--text); }
+    button.reply-toggle { display: inline-block; margin-top: 8px; padding: 4px 10px; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    button.reply-toggle:hover { background: var(--panel-2); border-color: var(--accent); }
     .pkg { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
     .empty { padding: 40px; text-align: center; color: var(--muted); }
     .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 12px; }
@@ -507,10 +509,13 @@
               </tr>
             </thead>
             <tbody>
-              ${rows.map(r => {
+              ${rows.map((r, i) => {
                 const [, pkg, user, rating, text, posted, thumbs, reply, replyAt, ver] = r;
                 const dateStr = posted ? posted.replace('T',' ').slice(0,16) : '';
-                const replyHtml = reply ? `<div class="reply"><b>Developer reply${replyAt?' · '+replyAt.slice(0,10):''}:</b> ${escapeHtml(reply)}</div>` : '';
+                const replyHtml = reply
+                  ? `<button class="reply-toggle" data-row="${i}" type="button">↩︎ Show developer reply</button>
+                     <div class="reply" data-row="${i}" style="display:none"><b>Developer reply${replyAt?' · '+replyAt.slice(0,10):''}:</b> ${escapeHtml(reply)}</div>`
+                  : '';
                 const ratingClass = rating <= 2 ? 'rating low' : 'rating';
                 return `<tr>
                   <td class="${ratingClass}">${'★'.repeat(rating||0)}${'☆'.repeat(5-(rating||0))}</td>
@@ -530,6 +535,16 @@
             if (state.sort === c) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
             else { state.sort = c; state.dir = 'desc'; }
             render();
+          };
+        });
+        $('table-wrap').querySelectorAll('button.reply-toggle').forEach(btn => {
+          btn.onclick = () => {
+            const idx = btn.dataset.row;
+            const reply = $('table-wrap').querySelector(`.reply[data-row="${idx}"]`);
+            if (!reply) return;
+            const isHidden = reply.style.display === 'none';
+            reply.style.display = isHidden ? 'block' : 'none';
+            btn.textContent = isHidden ? '↪︎ Hide developer reply' : '↩︎ Show developer reply';
           };
         });
       }
@@ -1759,7 +1774,7 @@
           </label>
         </div>
         <div class="stats" id="stats"></div>
-        <div id="table-wrap"></div>
+        <div class="table-scroll" id="table-wrap"></div>
         <div class="pager">
           <button id="prev">← Prev</button>
           <span id="pageinfo" class="meta"></span>
