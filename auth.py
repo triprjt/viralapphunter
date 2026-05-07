@@ -81,6 +81,18 @@ CREATE TABLE IF NOT EXISTS feature_usage (
   PRIMARY KEY (user_id, feature, context)
 );
 CREATE INDEX IF NOT EXISTS idx_feature_usage_user ON feature_usage(user_id, feature);
+
+-- Per-user activity log: every meaningful action the user takes inside the app.
+-- Used for the Activity panel + future analytics.
+CREATE TABLE IF NOT EXISTS user_activity (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action      TEXT NOT NULL,        -- 'login' | 'logout' | 'onboarding_complete' | 'review_fetch' | 'developer_lookup' | 'discover_category' | 'view_reviews' | 'paywall_hit'
+  context     TEXT,                 -- pkg / dev id / category id / niche term
+  metadata    TEXT,                 -- JSON blob with extras (count, success, etc.)
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_activity_user_time ON user_activity(user_id, created_at DESC);
 """
 
 
@@ -368,3 +380,42 @@ def session_cookie(token: str) -> str:
 
 def clear_cookie() -> str:
     return f"{SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+
+
+# ---- Per-user activity log ----
+
+def log_activity(user_id: int, action: str, context: str = "", metadata: dict | None = None) -> None:
+    """Record one user action. All inserts are best-effort — failures must not break the user flow."""
+    try:
+        conn = _conn()
+        try:
+            meta_json = json.dumps(metadata) if metadata else None
+            conn.execute(
+                "INSERT INTO user_activity (user_id, action, context, metadata, created_at) VALUES (?, ?, ?, ?, ?)",
+                (user_id, action, context or "", meta_json, now_iso()),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass  # never crash a request because activity logging failed
+
+
+def get_recent_activity(user_id: int, limit: int = 100) -> list[dict]:
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            "SELECT id, action, context, metadata, created_at FROM user_activity "
+            "WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    finally:
+        conn.close()
+    out = []
+    for r in rows:
+        meta = {}
+        if r[3]:
+            try: meta = json.loads(r[3])
+            except Exception: meta = {}
+        out.append({"id": r[0], "action": r[1], "context": r[2], "metadata": meta, "at": r[4]})
+    return out

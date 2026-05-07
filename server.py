@@ -519,12 +519,18 @@ class Handler(SimpleHTTPRequestHandler):
                     email_mod.fire_welcome(user)
                 except Exception:
                     pass
+            if user:
+                auth_mod.log_activity(user["id"], "login", metadata={"new_user": is_new})
             self._send_redirect(next_url, set_cookie=auth_mod.session_cookie(token))
             return
 
         if url.path == "/auth/logout":
             token = auth_mod.parse_cookie(self.headers.get("Cookie"), auth_mod.SESSION_COOKIE)
             if token:
+                # Log before destroying session so we still know who it was
+                user = auth_mod.get_user_by_session(token)
+                if user:
+                    auth_mod.log_activity(user["id"], "logout")
                 auth_mod.destroy_session(token)
             self._send_redirect("/", set_cookie=auth_mod.clear_cookie())
             return
@@ -550,6 +556,7 @@ class Handler(SimpleHTTPRequestHandler):
                     f'<meta name="vf-user" '
                     f'data-email="{user["email"]}" '
                     f'data-name="{user.get("name") or ""}" '
+                    f'data-picture="{user.get("picture") or ""}" '
                     f'data-admin="{"1" if user.get("is_admin") else "0"}" '
                     f'data-plan="{user.get("plan", "free")}" '
                     f'data-onboarded="{"1" if user.get("onboarded") else "0"}" '
@@ -586,6 +593,17 @@ class Handler(SimpleHTTPRequestHandler):
                 "plan": user.get("plan", "free"),
                 "usage": auth_mod.get_feature_usage_summary(user["id"]),
             })
+            return
+
+        if url.path == "/api/me/activity":
+            user = self._current_user()
+            if not user:
+                self._send_json(401, {"ok": False})
+                return
+            qs = parse_qs(url.query)
+            try: limit = max(1, min(500, int((qs.get("limit") or ["100"])[0])))
+            except: limit = 100
+            self._send_json(200, {"items": auth_mod.get_recent_activity(user["id"], limit)})
             return
 
         if url.path == "/api/onboarding/state":
@@ -653,6 +671,8 @@ class Handler(SimpleHTTPRequestHandler):
                 email_mod.fire_onboarded(user)
             except Exception:
                 pass
+            auth_mod.log_activity(user["id"], "onboarding_complete",
+                                  context=goal, metadata={"categories": cats.split(",") if cats else []})
             self._send_json(200, {"ok": True})
             return
 
@@ -670,9 +690,12 @@ class Handler(SimpleHTTPRequestHandler):
                 if not allowed:
                     try: email_mod.fire_paywall_hit(user, "review_fetch")
                     except Exception: pass
+                    auth_mod.log_activity(user["id"], "paywall_hit",
+                                          context=pkg, metadata={"feature": "review_fetch"})
                     self._send_json(403, {"ok": False, "error": "free_tier_used", "feature": "review_fetch", **details})
                     return
                 auth_mod.record_feature_use(user["id"], "review_fetch", pkg)
+                auth_mod.log_activity(user["id"], "review_fetch", context=pkg)
             self._send_json(202, _start_fetch(pkg, uid))
             return
         if url.path == "/api/discover_category":
@@ -681,8 +704,12 @@ class Handler(SimpleHTTPRequestHandler):
             if not cat_id:
                 self._send_json(400, {"ok": False, "error": "id required"})
                 return
+            user = self._current_user()
             try:
                 result = discover_category_full(cat_id)
+                if user:
+                    auth_mod.log_activity(user["id"], "discover_category",
+                                          context=cat_id, metadata={"found": result.get("found", 0)})
                 self._send_json(200, {"ok": True, **result})
             except ValueError as e:
                 self._send_json(404, {"ok": False, "error": str(e)})
@@ -703,11 +730,18 @@ class Handler(SimpleHTTPRequestHandler):
                 if not allowed:
                     try: email_mod.fire_paywall_hit(user, "developer_lookup")
                     except Exception: pass
+                    auth_mod.log_activity(user["id"], "paywall_hit",
+                                          context=dev_id or dev_name, metadata={"feature": "developer_lookup"})
                     self._send_json(403, {"ok": False, "error": "free_tier_used", "feature": "developer_lookup", **details})
                     return
                 auth_mod.record_feature_use(user["id"], "developer_lookup", dev_id or dev_name)
+                auth_mod.log_activity(user["id"], "developer_lookup",
+                                      context=dev_id or dev_name, metadata={"name": dev_name})
             try:
                 result = discover_developer(dev_id, dev_name)
+                if user:
+                    auth_mod.log_activity(user["id"], "developer_lookup_done",
+                                          context=dev_id or dev_name, metadata={"found": result.get("found", 0)})
                 self._send_json(200, {"ok": True, **result})
             except Exception as e:
                 self._send_json(500, {"ok": False, "error": str(e)[:300]})

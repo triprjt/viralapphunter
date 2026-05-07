@@ -194,6 +194,44 @@
     .theme-toggle { background: none; border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: border-color 0.12s, background 0.12s, transform 0.12s; }
     .theme-toggle:hover { border-color: var(--accent); background: var(--panel-2); transform: rotate(20deg); }
 
+    /* ---- User menu (avatar + dropdown with Activity + Logout) ---- */
+    .user-menu-toggle { background: none; border: 1px solid var(--border); padding: 0; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--text); background: linear-gradient(135deg, var(--coral), var(--violet)); position: relative; }
+    .user-menu-toggle img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .user-menu-toggle:hover { border-color: var(--accent); }
+    .user-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 280px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none; }
+    .user-menu.open { display: block; }
+    .user-menu-header { padding: 12px 14px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+    .user-menu-header strong { display: block; font-size: 13px; color: var(--text); }
+    .user-menu-header span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; word-break: break-all; }
+    .user-menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 13px; color: var(--text); text-decoration: none; cursor: pointer; border-radius: 6px; }
+    .user-menu-item:hover { background: var(--panel-2); text-decoration: none; }
+    .user-menu-item.danger { color: var(--bad); }
+
+    /* ---- Activity panel (modal) ---- */
+    .activity-overlay { position: fixed; inset: 0; background: rgba(11,18,32,0.78); backdrop-filter: blur(6px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .activity-modal { background: var(--bg); color: var(--text); border-radius: 14px; max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.5); border: 1px solid var(--border); position: relative; }
+    .activity-header { padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 1; }
+    .activity-header h2 { margin: 0; font-size: 18px; font-weight: 800; }
+    .activity-header button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; padding: 4px 8px; }
+    .activity-header button:hover { color: var(--text); }
+    .activity-body { padding: 8px 0; }
+    .activity-item { display: flex; gap: 12px; padding: 12px 22px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item .ico { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+    .activity-item .ico.login { background: rgba(6,214,160,0.15); }
+    .activity-item .ico.logout { background: rgba(100,116,139,0.15); }
+    .activity-item .ico.review_fetch { background: rgba(124,58,237,0.15); }
+    .activity-item .ico.developer_lookup { background: rgba(255,210,63,0.15); }
+    .activity-item .ico.discover_category { background: rgba(6,214,160,0.15); }
+    .activity-item .ico.onboarding_complete { background: rgba(255,107,107,0.15); }
+    .activity-item .ico.paywall_hit { background: rgba(239,68,68,0.15); }
+    .activity-item .ico.developer_lookup_done { background: rgba(255,210,63,0.15); }
+    .activity-item .body { flex: 1; min-width: 0; }
+    .activity-item .body b { color: var(--text); }
+    .activity-item .ctx { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--accent); word-break: break-all; }
+    .activity-item .when { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .activity-empty { padding: 36px; text-align: center; color: var(--muted); font-size: 14px; }
+
     /* ---- Tier badge in header ---- */
     .tier-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-decoration: none; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
     .tier-badge:hover { text-decoration: none; transform: translateY(-1px); }
@@ -344,6 +382,15 @@
         </div>
         <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
       </div>
+      <button id="user-menu-toggle" class="user-menu-toggle" type="button" aria-label="User menu" title="User menu" style="display:none">?</button>
+      <div id="user-menu" class="user-menu">
+        <div class="user-menu-header">
+          <strong id="um-name">…</strong>
+          <span id="um-email">…</span>
+        </div>
+        <a class="user-menu-item" id="um-activity">📜 <span>Activity log</span></a>
+        <a class="user-menu-item danger" href="/auth/logout">🚪 <span>Sign out</span></a>
+      </div>
     </div>
   </header>
   <div class="tabs" id="tabs" style="display:none">
@@ -416,6 +463,19 @@
         <div class="up-tier featured"><h4>Solo</h4><div class="amount">$29<span>/mo</span></div><ul><li>All 33 categories</li><li>100 review fetches/mo</li><li>50 AI gap reports/mo</li><li>Unlimited dev lookups</li><li>Weekly digest</li></ul><a class="btn btn-primary" id="up-cta-solo" href="mailto:hello@viralfinder.app?subject=Upgrade%20me%20to%20Solo">Upgrade to Solo →</a></div>
         <div class="up-tier"><h4>Pro</h4><div class="amount">$99<span>/mo</span></div><ul><li>Unlimited fetches</li><li>500 AI reports/mo</li><li>App idea generator</li><li>Daily digest + Slack</li></ul><a class="btn btn-secondary" href="mailto:hello@viralfinder.app?subject=Upgrade%20me%20to%20Pro">Choose Pro</a></div>
         <div class="up-tier"><h4>Studio</h4><div class="amount">$299<span>/mo</span></div><ul><li>5K AI reports/mo</li><li>API + webhooks</li><li>White-label</li></ul><a class="btn btn-secondary" href="mailto:hello@viralfinder.app?subject=Studio%20enquiry">Contact us</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity log modal -->
+  <div id="activity-overlay" class="activity-overlay" style="display:none">
+    <div class="activity-modal">
+      <div class="activity-header">
+        <h2>📜 Your activity log</h2>
+        <button id="activity-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="activity-body" id="activity-body">
+        <div class="activity-empty">Loading…</div>
       </div>
     </div>
   </div>
@@ -1982,6 +2042,102 @@
         refreshIcon();
       };
     })();
+
+    // ---- User menu (avatar + dropdown with Activity + Logout) ----
+    (() => {
+      const btn = document.getElementById('user-menu-toggle');
+      const menu = document.getElementById('user-menu');
+      if (!btn || !menu) return;
+      const email = vfUser?.dataset.email || '';
+      const name = vfUser?.dataset.name || '';
+      const picture = vfUser?.dataset.picture || '';
+      // Hydrate the dropdown header
+      document.getElementById('um-name').textContent = name || email.split('@')[0] || 'You';
+      document.getElementById('um-email').textContent = email;
+      // Avatar: picture if available, else initials over the gradient
+      if (picture) {
+        btn.innerHTML = `<img src="${picture}" alt="" referrerpolicy="no-referrer" onerror="this.onerror=null;this.outerHTML='${(name || email).charAt(0).toUpperCase()}';" />`;
+      } else {
+        btn.textContent = (name || email).charAt(0).toUpperCase() || '?';
+      }
+      btn.style.display = 'inline-flex';
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        menu.classList.toggle('open');
+      };
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('#user-menu') && !ev.target.closest('#user-menu-toggle')) {
+          menu.classList.remove('open');
+        }
+      });
+      document.getElementById('um-activity').onclick = (ev) => {
+        ev.preventDefault();
+        menu.classList.remove('open');
+        openActivityModal();
+      };
+    })();
+
+    // ---- Activity modal ----
+    function actionLabel(a) {
+      switch (a.action) {
+        case 'login': return { ico: '🔑', title: 'Signed in', class: 'login' };
+        case 'logout': return { ico: '🚪', title: 'Signed out', class: 'logout' };
+        case 'onboarding_complete': return { ico: '✨', title: `Completed onboarding (goal: ${a.context || '—'})`, class: 'onboarding_complete' };
+        case 'review_fetch': return { ico: '⬇', title: 'Fetched reviews', class: 'review_fetch' };
+        case 'developer_lookup': return { ico: '👤', title: 'Looked up developer', class: 'developer_lookup' };
+        case 'developer_lookup_done': return { ico: '✓', title: `Loaded developer catalog (${a.metadata?.found ?? '?'} apps)`, class: 'developer_lookup_done' };
+        case 'discover_category': return { ico: '🎯', title: `Discovered category (${a.metadata?.found ?? '?'} apps)`, class: 'discover_category' };
+        case 'paywall_hit': return { ico: '🔒', title: `Paywall hit (${a.metadata?.feature || 'feature'})`, class: 'paywall_hit' };
+        default: return { ico: '•', title: a.action.replace(/_/g, ' '), class: 'default' };
+      }
+    }
+    function relTime(iso) {
+      try {
+        const d = new Date(iso);
+        const s = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (s < 5) return 'just now';
+        if (s < 60) return `${s}s ago`;
+        if (s < 3600) return `${Math.floor(s/60)}m ago`;
+        if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+        return d.toLocaleString();
+      } catch { return iso; }
+    }
+    async function openActivityModal() {
+      const overlay = document.getElementById('activity-overlay');
+      const body = document.getElementById('activity-body');
+      overlay.style.display = 'flex';
+      body.innerHTML = '<div class="activity-empty">Loading…</div>';
+      try {
+        const r = await fetch('/api/me/activity?limit=200');
+        if (!r.ok) throw new Error('failed');
+        const j = await r.json();
+        const items = j.items || [];
+        if (!items.length) {
+          body.innerHTML = '<div class="activity-empty">No activity yet. Once you start using the dashboard your actions will show up here.</div>';
+          return;
+        }
+        body.innerHTML = items.map(a => {
+          const lbl = actionLabel(a);
+          const ctx = a.context ? `<div class="ctx">${escapeHtml(a.context)}</div>` : '';
+          return `<div class="activity-item">
+            <span class="ico ${lbl.class}">${lbl.ico}</span>
+            <div class="body">
+              <b>${escapeHtml(lbl.title)}</b>
+              ${ctx}
+              <div class="when">${relTime(a.at)}</div>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        body.innerHTML = `<div class="activity-empty" style="color:var(--bad)">Failed to load activity: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+    document.getElementById('activity-close').onclick = () => {
+      document.getElementById('activity-overlay').style.display = 'none';
+    };
+    document.getElementById('activity-overlay').addEventListener('click', (ev) => {
+      if (ev.target.id === 'activity-overlay') document.getElementById('activity-overlay').style.display = 'none';
+    });
 
     // Tier badge in header
     (() => {
