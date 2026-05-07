@@ -290,6 +290,23 @@
       .ob-step h2 { font-size: 22px; }
       .up-modal h2 { font-size: 22px; }
       .up-tiers { grid-template-columns: 1fr; }
+      /* ---- Tables: tight columns, content-driven widths, consistent across tabs ---- */
+      .table-scroll { max-height: calc(100vh - 200px); }
+      .table-scroll table { min-width: 0; font-size: 12px; }
+      .table-scroll th { padding: 8px 10px; font-size: 10px; white-space: nowrap; }
+      .table-scroll td { padding: 7px 10px; white-space: nowrap; vertical-align: middle; }
+      /* Cells that genuinely need to wrap (long text) */
+      .table-scroll td.text { white-space: normal; max-width: 240px; }
+      .table-scroll .app-cell { gap: 8px; min-width: 0; }
+      .table-scroll .app-cell img { width: 32px; height: 32px; min-width: 32px; min-height: 32px; max-width: 32px; max-height: 32px; }
+      .table-scroll .app-cell .meta b { font-size: 12px; }
+      .table-scroll .app-cell .meta span { font-size: 10px; }
+      /* Action buttons inside table cells stay compact */
+      .table-scroll button.fetch-btn { padding: 5px 9px; font-size: 11px; }
+      .table-scroll button.dev-link { font-size: 12px; }
+      .table-scroll a.app-link { font-size: 11px; }
+      .terms { max-width: 160px; }
+      .terms .term { font-size: 10px; padding: 1px 5px; }
     }
 
     /* ---- Very narrow phones (≤ 480px) ---- */
