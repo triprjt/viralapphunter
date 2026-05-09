@@ -1513,11 +1513,15 @@ class Handler(SimpleHTTPRequestHandler):
         self._send_xml(200, xml)
 
     def _send_html(self, code: int, html: str) -> None:
+        # Belt-and-suspenders: stop browsers from caching the app shell HTML.
+        # If we ever change the JS inline, every visitor gets the latest immediately.
         body = html.encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")          # legacy HTTP/1.0 caches
+        self.send_header("Expires", "0")                # legacy proxies
         self.end_headers()
         self.wfile.write(body)
 
