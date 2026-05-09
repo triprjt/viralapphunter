@@ -1260,30 +1260,67 @@ def compute_monthly_hot_apps(force: bool = False, top_n: int = 10) -> int:
 
 
 def _app_about(package_name: str) -> dict:
-    """Returns {description, qa, qa_updated_at} for the app detail page.
-    description = discovered_apps.summary (capped); qa = parsed apps_enriched.qa_json.
-    Falls back to a live build if the cache is empty so the user never sees a blank page."""
+    """One-shot payload for the app detail page banner + Q&A.
+
+    Replaces the in-browser sql.js queries (which required downloading the
+    whole 74 MB reviews.db). Returns:
+      - app: full metadata (icon, title, dev, installs, score, histogram, …)
+      - description: long-form description (from discovered_apps.summary)
+      - qa: cached Q&A from apps_enriched.qa_json (or live-built if missing)
+      - monetization: 'IAP' | 'ADS' | 'FREE'
+      - qa_updated_at
+    """
     conn = _conn()
     try:
         row = conn.execute(
-            """SELECT d.summary, e.qa_json, e.qa_updated_at, e.title
-               FROM apps_enriched e
-               LEFT JOIN discovered_apps d ON d.package_name = e.package_name
-               WHERE e.package_name = ?""",
+            """
+            SELECT
+              e.package_name, e.title, e.developer, e.developer_id, e.icon,
+              e.released, e.released_raw, e.updated_at, e.version, e.recent_changes,
+              e.installs, e.min_installs, e.score, e.ratings, e.reviews,
+              e.histogram_1, e.histogram_2, e.histogram_3, e.histogram_4, e.histogram_5,
+              e.contains_ads, e.offers_iap, e.iap_price_range, e.free, e.price, e.currency,
+              e.editors_choice, e.genre, e.genre_id, e.content_rating,
+              d.summary, d.categories,
+              e.qa_json, e.qa_updated_at,
+              (SELECT installs_per_month FROM apps_ranked WHERE package_name = e.package_name) AS installs_per_month
+            FROM apps_enriched e
+            LEFT JOIN discovered_apps d ON d.package_name = e.package_name
+            WHERE e.package_name = ?
+            """,
             (package_name,),
         ).fetchone()
     finally:
         conn.close()
+
     if not row:
-        return {"package_name": package_name, "description": None, "qa": None, "qa_updated_at": None}
-    description, qa_raw, qa_updated_at, _title = row
+        return {
+            "package_name": package_name,
+            "app": None,
+            "description": None,
+            "qa": None,
+            "qa_updated_at": None,
+            "monetization": None,
+        }
+
+    cols = (
+        "package_name", "title", "developer", "developer_id", "icon",
+        "released", "released_raw", "updated_at", "version", "recent_changes",
+        "installs", "min_installs", "score", "ratings", "reviews",
+        "histogram_1", "histogram_2", "histogram_3", "histogram_4", "histogram_5",
+        "contains_ads", "offers_iap", "iap_price_range", "free", "price", "currency",
+        "editors_choice", "genre", "genre_id", "content_rating",
+        "summary", "categories",
+        "qa_json", "qa_updated_at", "installs_per_month",
+    )
+    rec = dict(zip(cols, row))
+
     qa = None
-    if qa_raw:
+    if rec.get("qa_json"):
         try:
-            qa = json.loads(qa_raw)
+            qa = json.loads(rec["qa_json"])
         except Exception:
             qa = None
-    # Fallback: build on demand if the cache hasn't been populated yet.
     if qa is None:
         try:
             import app_qa as _qa_mod
@@ -1294,12 +1331,124 @@ def _app_about(package_name: str) -> dict:
                 conn2.close()
         except Exception:
             qa = None
+
+    if rec.get("offers_iap"):
+        monetization = "IAP"
+    elif rec.get("contains_ads"):
+        monetization = "ADS"
+    else:
+        monetization = "FREE"
+
+    # Build the app sub-object — strip the qa_json blob (too big, redundant)
+    app = {k: rec.get(k) for k in cols if k not in ("qa_json", "summary")}
+    app["monetization"] = monetization
+
     return {
         "package_name": package_name,
-        "description": description,
+        "app": app,
+        "description": rec.get("summary"),
         "qa": qa,
-        "qa_updated_at": qa_updated_at,
+        "qa_updated_at": rec.get("qa_updated_at"),
+        "monetization": monetization,
     }
+
+
+def _app_reviews(package_name: str, page: int = 0, page_size: int = 25,
+                 ratings: list[int] | None = None, search: str | None = None) -> dict:
+    """Paginated reviews for one app. Replaces the in-browser sql.js view."""
+    conn = _conn()
+    try:
+        # Find all reviews_* tables (excluding the aggregate)
+        review_tables = [r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews_%' "
+            "AND name != 'reviews_daily' ORDER BY name"
+        ).fetchall()]
+        if not review_tables:
+            return {"package_name": package_name, "rows": [], "total": 0, "page": page, "page_size": page_size}
+
+        # Aggregate across all per-country tables. UNION ALL keeps it fast.
+        clauses = ["package_name = ?"]
+        params: list = [package_name]
+        if ratings:
+            ph = ",".join("?" * len(ratings))
+            clauses.append(f"rating IN ({ph})")
+            params.extend(ratings)
+        if search and search.strip():
+            clauses.append("text LIKE ?")
+            params.append(f"%{search.strip()}%")
+        where = " WHERE " + " AND ".join(clauses)
+
+        # Combine across tables.
+        union_sql = " UNION ALL ".join(
+            f"SELECT review_id, rating, text, user_name, posted_at, COALESCE(thumbs_up, 0) AS thumbs_up, app_version FROM {t}{where}"
+            for t in review_tables
+        )
+        # Total
+        total_sql = f"SELECT COUNT(*) FROM ({union_sql})"
+        total = conn.execute(total_sql, params * len(review_tables)).fetchone()[0]
+
+        # Paginated rows ordered newest first
+        list_sql = f"SELECT * FROM ({union_sql}) ORDER BY posted_at DESC LIMIT ? OFFSET ?"
+        offset = max(0, page) * max(1, page_size)
+        rows = conn.execute(list_sql, params * len(review_tables) + [page_size, offset]).fetchall()
+
+        out_rows = []
+        for r in rows:
+            out_rows.append({
+                "review_id": r[0],
+                "rating": r[1],
+                "text": r[2],
+                "user_name": r[3],
+                "posted_at": r[4],
+                "thumbs_up": r[5],
+                "app_version": r[6],
+            })
+        return {
+            "package_name": package_name,
+            "rows": out_rows,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+    finally:
+        conn.close()
+
+
+def _app_siblings(package_name: str, limit: int = 30) -> dict:
+    """Returns the developer's other apps (developer's portfolio) — sorted by install velocity."""
+    conn = _conn()
+    try:
+        # Find the developer_id for this package
+        row = conn.execute(
+            "SELECT developer_id, developer FROM apps_enriched WHERE package_name=?",
+            (package_name,),
+        ).fetchone()
+        if not row or not row[0]:
+            return {"package_name": package_name, "developer_id": None, "developer": None, "siblings": []}
+        dev_id, dev_name = row[0], row[1]
+        rows = conn.execute(
+            """
+            SELECT package_name, title, icon, installs_per_month, score, released
+            FROM apps_ranked
+            WHERE developer_id = ? AND package_name <> ?
+            ORDER BY (installs_per_month IS NULL), installs_per_month DESC
+            LIMIT ?
+            """,
+            (dev_id, package_name, limit),
+        ).fetchall()
+        siblings = [
+            {"package_name": r[0], "title": r[1], "icon": r[2],
+             "installs_per_month": r[3], "score": r[4], "released": r[5]}
+            for r in rows
+        ]
+        return {
+            "package_name": package_name,
+            "developer_id": dev_id,
+            "developer": dev_name,
+            "siblings": siblings,
+        }
+    finally:
+        conn.close()
 
 
 def _latest_good_review(package_name: str) -> dict:
@@ -1680,12 +1829,42 @@ class Handler(SimpleHTTPRequestHandler):
                 self._send_json(200, _latest_good_review(pkg))
                 return
 
-        # /api/app/<pkg>/about — description + Q&A snapshot
+        # /api/app/<pkg>/about — full app metadata + description + Q&A snapshot
         if url.path.startswith("/api/app/") and url.path.endswith("/about"):
             parts = url.path.strip("/").split("/")
             if len(parts) == 4:
                 pkg = parts[2]
                 self._send_json(200, _app_about(pkg))
+                return
+
+        # /api/app/<pkg>/reviews?page=&page_size=&ratings=&search=
+        # Replaces the in-browser sql.js review queries.
+        if url.path.startswith("/api/app/") and url.path.endswith("/reviews"):
+            parts = url.path.strip("/").split("/")
+            if len(parts) == 4:
+                pkg = parts[2]
+                qs = parse_qs(url.query)
+                try: page = max(0, int((qs.get("page") or ["0"])[0]))
+                except: page = 0
+                try: page_size = max(1, min(100, int((qs.get("page_size") or ["25"])[0])))
+                except: page_size = 25
+                ratings_raw = (qs.get("ratings") or [""])[0]
+                ratings = []
+                for r in ratings_raw.split(","):
+                    r = r.strip()
+                    if r.isdigit() and 1 <= int(r) <= 5:
+                        ratings.append(int(r))
+                search = (qs.get("search") or [""])[0]
+                self._send_json(200, _app_reviews(pkg, page=page, page_size=page_size,
+                                                    ratings=ratings or None, search=search or None))
+                return
+
+        # /api/app/<pkg>/siblings — developer's other apps
+        if url.path.startswith("/api/app/") and url.path.endswith("/siblings"):
+            parts = url.path.strip("/").split("/")
+            if len(parts) == 4:
+                pkg = parts[2]
+                self._send_json(200, _app_siblings(pkg))
                 return
 
         if url.path == "/api/me/saved-searches":

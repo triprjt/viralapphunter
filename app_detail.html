@@ -51,6 +51,12 @@
 
     /* About + Q&A (appears below the banner, above the view-switcher) */
     .about-skel { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+    /* Banner skeleton — appears in <50ms while /api/app/<pkg>/about loads */
+    .skel { background: linear-gradient(90deg, var(--panel-2) 0%, color-mix(in srgb, var(--panel-2) 50%, var(--panel)) 50%, var(--panel-2) 100%); background-size: 200% 100%; animation: skel-shimmer 1.4s ease-in-out infinite; border-radius: 8px; }
+    .skel-title { height: 22px; width: 60%; margin: 4px 0 8px; }
+    .skel-line { height: 12px; width: 40%; margin-bottom: 8px; }
+    .skel-chips { height: 22px; width: 220px; }
+    @keyframes skel-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
     .about-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
     .about-h { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
     .about-desc-body { font-size: 14px; line-height: 1.55; color: var(--text); white-space: pre-wrap; }
@@ -175,17 +181,18 @@
   </section>
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
 <script>
 (async () => {
-  // ---- URL params ----
-  const path = window.location.pathname;             // e.g. /app/com.foo.bar/details
-  const m = path.match(/^\/app\/([^/]+)\/details\/?$/);
-  const pkg = m ? decodeURIComponent(m[1]) : '';
-  const params = new URLSearchParams(window.location.search);
-  const show = (params.get('show') || 'review').toLowerCase();
+  // ---- URL parsing ----
+  function _parsePath() {
+    const m = window.location.pathname.match(/^\/app\/([^/]+)\/details\/?$/);
+    const pkg = m ? decodeURIComponent(m[1]) : '';
+    const params = new URLSearchParams(window.location.search);
+    const show = (params.get('show') || 'review').toLowerCase();
+    return { pkg, show };
+  }
+  const { pkg, show: initialShow } = _parsePath();
 
-  // ---- vf-user meta (for plan-aware features) ----
   const vfUser = document.querySelector('meta[name="vf-user"]');
   const userPlan = (vfUser?.dataset.plan || 'free').toLowerCase();
   const userIsFree = userPlan === 'free';
@@ -195,19 +202,9 @@
     return;
   }
 
-  // ---- Switcher: highlight active + wire links ----
-  ['review','developer','revenue'].forEach(v => {
-    const el = document.getElementById('vb-' + v);
-    if (el) {
-      el.href = `/app/${encodeURIComponent(pkg)}/details?show=${v}`;
-      if (v === show) el.classList.add('active');
-    }
-  });
-  document.getElementById('vb-store').href = `https://play.google.com/store/apps/details?id=${encodeURIComponent(pkg)}`;
-
   // ---- Helpers ----
   const $ = id => document.getElementById(id);
-  function escapeHtml(s) { return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  function escapeHtml(s) { return (s ?? '').toString().replace(/[&<>"\']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
   function fmtInst(n) {
     if (!n) return '0'; n = Number(n);
     if (n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -221,97 +218,136 @@
     return '$' + Math.round(n);
   }
 
-  // ---- Load sql.js + reviews.db ----
-  let SQL, db;
-  try {
-    SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
-    const buf = await fetch('/reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => {
-      if (!r.ok) throw new Error('reviews.db fetch failed: ' + r.status);
-      return r.arrayBuffer();
+  // ---- State ----
+  // The about-payload is fetched ONCE per page lifetime. Reviews + siblings
+  // are fetched on first tab visit and cached in _cache.
+  const _state = {
+    show: initialShow,
+    about: null,           // /api/app/<pkg>/about response
+  };
+  const _cache = {
+    reviews: null,         // {filtersKey: payload}
+    siblings: null,        // /api/app/<pkg>/siblings response
+  };
+
+  // ---- View-switcher: highlight active + intercept clicks for SPA nav ----
+  function _refreshSwitcher() {
+    ['review','developer','revenue'].forEach(v => {
+      const el = document.getElementById('vb-' + v);
+      if (!el) return;
+      el.href = `/app/${encodeURIComponent(pkg)}/details?show=${v}`;
+      el.classList.toggle('active', v === _state.show);
     });
-    db = new SQL.Database(new Uint8Array(buf));
+    document.getElementById('vb-store').href = `https://play.google.com/store/apps/details?id=${encodeURIComponent(pkg)}`;
+  }
+
+  function _navTo(view, push = true) {
+    if (view === _state.show) return;
+    _state.show = view;
+    _refreshSwitcher();
+    if (push) {
+      const url = `/app/${encodeURIComponent(pkg)}/details?show=${view}`;
+      history.pushState({ show: view }, '', url);
+    }
+    _renderActiveView();
+  }
+
+  // Wire all anchors that look like our switcher to be SPA-style
+  document.addEventListener('click', (ev) => {
+    const a = ev.target.closest('a[id^="vb-"]');
+    if (!a) return;
+    if (a.id === 'vb-store') return;   // external — let it open in new tab
+    const m = a.id.match(/^vb-(\w+)$/);
+    if (!m) return;
+    ev.preventDefault();
+    _navTo(m[1]);
+  });
+  window.addEventListener('popstate', (ev) => {
+    const { show } = _parsePath();
+    if (show && show !== _state.show) {
+      _state.show = show;
+      _refreshSwitcher();
+      _renderActiveView();
+    }
+  });
+
+  _refreshSwitcher();
+
+  // ---- Render the banner from /about (single fetch hydrates everything) ----
+  const bannerSlot = $('banner-slot');
+  const aboutSlot = $('about-slot');
+  const content = $('content');
+
+  // Skeleton — appears immediately so the page never looks blank
+  bannerSlot.innerHTML = `
+    <div class="app-banner">
+      <div class="app-banner-fallback skel"></div>
+      <div class="app-banner-id">
+        <div class="skel skel-title"></div>
+        <div class="skel skel-line"></div>
+        <div class="skel skel-chips"></div>
+      </div>
+    </div>`;
+  aboutSlot.innerHTML = `<div class="about-skel"><span class="spinner"></span>Loading insights…</div>`;
+  content.innerHTML = `<div class="loading-block"><span class="spinner"></span>Loading…</div>`;
+
+  try {
+    const r = await fetch(`/api/app/${encodeURIComponent(pkg)}/about`, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    _state.about = await r.json();
   } catch (e) {
-    document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-title">Failed to load DB</div><div class="empty-sub">${escapeHtml(e.message || String(e))}</div></div>`;
+    bannerSlot.innerHTML = `<div class="empty"><div class="empty-title">Couldn't load app: ${escapeHtml(e.message || String(e))}</div><a href="/dashboard">← Back to dashboard</a></div>`;
+    aboutSlot.innerHTML = '';
+    content.innerHTML = '';
     return;
   }
-  function safeExec(sql, params) { try { return db.exec(sql, params); } catch { return []; } }
 
-  // ---- Fetch app metadata from apps_ranked ----
-  let app = null;
-  try {
-    const r = db.exec(`
-      SELECT package_name, title, developer, developer_id, icon, released,
-             installs_per_month, min_installs, score, ratings, reviews,
-             histogram_1, histogram_2, histogram_3, histogram_4, histogram_5,
-             genre, contains_ads, offers_iap, categories
-      FROM apps_ranked WHERE package_name=$pkg LIMIT 1
-    `, { '$pkg': pkg });
-    if (r.length) {
-      const cols = r[0].columns;
-      app = {};
-      cols.forEach((c, i) => app[c] = r[0].values[0][i]);
+  _renderBanner();
+  _renderAbout();
+  _renderActiveView();
+
+  function _renderBanner() {
+    const a = _state.about?.app;
+    if (!a) {
+      bannerSlot.innerHTML = `
+        <div class="app-banner">
+          <div class="app-banner-fallback"></div>
+          <div class="app-banner-id">
+            <h1 class="app-banner-title">${escapeHtml(pkg)}</h1>
+            <div class="app-banner-meta">App not in our local DB yet · <code>${escapeHtml(pkg)}</code></div>
+          </div>
+        </div>`;
+      return;
     }
-  } catch (e) {
-    console.error('app metadata query failed', e);
-  }
-
-  // ---- Render the banner ----
-  const bannerSlot = $('banner-slot');
-  if (!app) {
-    bannerSlot.innerHTML = `
-      <div class="app-banner">
-        <div class="app-banner-fallback"></div>
-        <div class="app-banner-id">
-          <h1 class="app-banner-title">${escapeHtml(pkg)}</h1>
-          <div class="app-banner-meta">App not in our local DB yet · <code>${escapeHtml(pkg)}</code></div>
-        </div>
-      </div>`;
-  } else {
-    const moneyChip = app.offers_iap ? '<span class="chip chip-money-iap">💳 IAP</span>'
-      : app.contains_ads ? '<span class="chip chip-money-ads">📢 Ads</span>'
-      : '<span class="chip chip-money-free">🎁 Free</span>';
-    const ratingChip = (typeof app.score === 'number')
-      ? `<span class="chip chip-rating">★ ${app.score.toFixed(1)}</span>` : '';
-    const installsChip = app.installs_per_month
-      ? `<span class="chip chip-installs">🚀 ${fmtInst(app.installs_per_month)}/mo</span>` : '';
-    const releasedTxt = app.released ? `Released ${new Date(app.released).toLocaleDateString(undefined, {year:'numeric', month:'short'})}` : '';
-    const icon = app.icon ? `<img src="${escapeHtml(app.icon)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : '<div class="app-banner-fallback"></div>';
+    const monetization = _state.about.monetization || a.monetization || 'FREE';
+    const moneyChip =
+      monetization === 'IAP'  ? '<span class="chip chip-money-iap">💳 IAP</span>' :
+      monetization === 'ADS'  ? '<span class="chip chip-money-ads">📢 Ads</span>' :
+                                '<span class="chip chip-money-free">🎁 Free</span>';
+    const ratingChip = (typeof a.score === 'number')
+      ? `<span class="chip chip-rating">★ ${a.score.toFixed(1)}</span>` : '';
+    const installsChip = a.installs_per_month
+      ? `<span class="chip chip-installs">🚀 ${fmtInst(a.installs_per_month)}/mo</span>` : '';
+    const releasedTxt = a.released
+      ? `Released ${new Date(a.released).toLocaleDateString(undefined, {year:'numeric', month:'short'})}`
+      : '';
+    const icon = a.icon
+      ? `<img src="${escapeHtml(a.icon)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+      : '<div class="app-banner-fallback"></div>';
     bannerSlot.innerHTML = `
       <div class="app-banner">
         <div class="app-banner-icon">${icon}</div>
         <div class="app-banner-id">
-          <h1 class="app-banner-title">${escapeHtml(app.title || pkg)}</h1>
-          <div class="app-banner-meta">${escapeHtml(app.developer || '')} ${releasedTxt ? '· ' + escapeHtml(releasedTxt) : ''} · <code>${escapeHtml(pkg)}</code></div>
+          <h1 class="app-banner-title">${escapeHtml(a.title || pkg)}</h1>
+          <div class="app-banner-meta">${escapeHtml(a.developer || '')} ${releasedTxt ? '· ' + escapeHtml(releasedTxt) : ''} · <code>${escapeHtml(pkg)}</code></div>
           <div class="app-banner-chips">${ratingChip} ${installsChip} ${moneyChip}</div>
         </div>
       </div>`;
   }
 
-  // ---- Render the About + Q&A block (visible on every ?show= view) ----
-  loadAndRenderAbout(pkg);
-
-  // ---- Dispatch on ?show= ----
-  const content = $('content');
-  if (show === 'review') renderReviews();
-  else if (show === 'developer') renderDeveloper();
-  else if (show === 'revenue') renderRevenue();
-  else { content.innerHTML = `<div class="empty"><div class="empty-title">Unknown view</div><a href="/dashboard">← Back</a></div>`; }
-
-  // ===========================================
-  // About + Q&A
-  // ===========================================
-  async function loadAndRenderAbout(pkg) {
-    const slot = $('about-slot');
-    slot.innerHTML = `<div class="about-skel"><span class="spinner"></span>Loading app insights…</div>`;
-    let data = null;
-    try {
-      const r = await fetch(`/api/app/${encodeURIComponent(pkg)}/about`, { cache: 'no-store' });
-      if (r.ok) data = await r.json();
-    } catch (e) { console.warn('about fetch failed', e); }
-    if (!data) { slot.innerHTML = ''; return; }
-
-    const desc = (data.description || '').trim();
-    const qa = data.qa || null;
+  function _renderAbout() {
+    const desc = (_state.about?.description || '').trim();
+    const qa = _state.about?.qa || null;
 
     const descBlock = desc ? `
       <div class="about-card about-desc">
@@ -331,13 +367,9 @@
             </div>
           `).join('')}
         </div>
-      </div>` : `
-      <div class="about-card about-qa about-qa-pending">
-        <div class="about-h">🔎 Quick read for creators</div>
-        <div style="font-size: 13px; color: var(--muted);">Computing app insights… reload the page in a moment.</div>
-      </div>`;
+      </div>` : '';
 
-    slot.innerHTML = descBlock + qaBlock;
+    aboutSlot.innerHTML = descBlock + qaBlock;
 
     const moreBtn = $('about-more');
     if (moreBtn) {
@@ -348,32 +380,25 @@
     }
   }
 
+  // ---- View dispatch ----
+  function _renderActiveView() {
+    if (_state.show === 'review') return _renderReviews();
+    if (_state.show === 'developer') return _renderDeveloper();
+    if (_state.show === 'revenue') return _renderRevenue();
+    content.innerHTML = `<div class="empty"><div class="empty-title">Unknown view</div><a href="/dashboard">← Back</a></div>`;
+  }
+
   // ===========================================
   // VIEW: Reviews
   // ===========================================
-  function renderReviews() {
-    // Find reviews_* tables
-    const tablesRows = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews_%' AND name NOT IN ('reviews_daily') ORDER BY name");
-    const tables = tablesRows.length ? tablesRows[0].values.map(r => r[0]) : [];
-    if (!tables.length) {
-      content.innerHTML = `<div class="empty"><div class="empty-title">No review tables in DB yet</div><div class="empty-sub">Run discovery + a fetch first.</div></div>`;
-      return;
-    }
-    const state = {
-      table: tables[0],
-      ratings: new Set([1,2,3,4,5]),
-      search: '',
-      page: 0,
-      pageSize: 25,
-      sort: 'posted_at', dir: 'desc',
-    };
+  async function _renderReviews() {
+    // Pull state for this view (filter + paging) — kept in URL hash
+    const ratings = new Set([1,2,3,4,5]);
+    const state = { page: 0, pageSize: 25, ratings, search: '' };
 
     content.innerHTML = `
       <h2 class="section-title">📖 User reviews</h2>
       <div class="filters">
-        <label>Source
-          <select id="f-table">${tables.map(t => `<option ${t===state.table?'selected':''}>${t}</option>`).join('')}</select>
-        </label>
         <label>Rating
           <div class="ratings" id="f-ratings">
             ${[1,2,3,4,5].map(n => `<span class="pill ${state.ratings.has(n)?'active':''}" data-r="${n}">${n}★</span>`).join('')}
@@ -395,36 +420,37 @@
       </div>
     `;
 
-    function buildWhere() {
-      const params = { '$pkg': pkg };
-      const clauses = ['package_name = $pkg'];
+    // server fetch state — also tracks server-side fetch for "no reviews yet" recovery
+    let _pollTimer = null;
+    let _pollStart = 0;
+    const _POLL_STUCK_MS = 90000;
+
+    function _filtersKey() {
+      const r = [...state.ratings].sort().join(',');
+      return `${state.page}|${state.pageSize}|${r}|${state.search}`;
+    }
+
+    async function fetchReviews() {
+      const params = new URLSearchParams({
+        page: String(state.page),
+        page_size: String(state.pageSize),
+      });
       if (state.ratings.size && state.ratings.size < 5) {
-        const ids = [...state.ratings];
-        const placeholders = ids.map((_, i) => '$r' + i).join(',');
-        ids.forEach((r, i) => params['$r' + i] = r);
-        clauses.push('rating IN (' + placeholders + ')');
+        params.set('ratings', [...state.ratings].sort().join(','));
       }
-      if (state.search.trim()) {
-        clauses.push("text LIKE $s");
-        params.$s = '%' + state.search.trim() + '%';
-      }
-      return { where: 'WHERE ' + clauses.join(' AND '), params };
+      if (state.search.trim()) params.set('search', state.search.trim());
+
+      // Memoize: if we already have this exact filterset cached, reuse it
+      const key = _filtersKey();
+      if (_cache.reviews && _cache.reviews.key === key) return _cache.reviews.payload;
+
+      const r = await fetch(`/api/app/${encodeURIComponent(pkg)}/reviews?${params.toString()}`, { cache: 'no-store' });
+      if (!r.ok) throw new Error('reviews HTTP ' + r.status);
+      const j = await r.json();
+      _cache.reviews = { key, payload: j };
+      return j;
     }
 
-    // Reload reviews.db from the server (used after a fetch completes server-side
-    // while the user was elsewhere — the in-browser sql.js cache is stale).
-    async function reloadDb() {
-      const buf = await fetch('/reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => r.arrayBuffer());
-      db = new SQL.Database(new Uint8Array(buf));
-    }
-
-    // Quick "is this package's reviews already in our local DB?" check.
-    function _localReviewCount() {
-      const r = safeExec(`SELECT COUNT(*) FROM ${state.table} WHERE package_name=$pkg`, { '$pkg': pkg });
-      return r.length ? r[0].values[0][0] : 0;
-    }
-
-    // Server-side fetch state for this package.
     async function _serverFetchState() {
       try {
         const r = await fetch('/api/status', { cache: 'no-store' });
@@ -435,40 +461,24 @@
     }
 
     function _waitingMarkup(state, count) {
-      const stateLabels = {
-        queued:   'Queued — waiting for a worker…',
+      const labels = {
+        queued: 'Queued — waiting for a worker…',
         fetching: 'Fetching reviews from Google Play…',
-        unknown:  'Working on it…',
+        unknown: 'Working on it…',
       };
-      const label = stateLabels[state] || stateLabels.unknown;
       return `
         <div class="empty">
           <div class="page-loader-spinner" style="margin: 0 auto 14px;"></div>
-          <div class="empty-title">${escapeHtml(label)}</div>
+          <div class="empty-title">${escapeHtml(labels[state] || labels.unknown)}</div>
           <div class="empty-sub">This usually takes 10–30 seconds. The page will refresh automatically when the reviews land.${count ? ` Fetched so far: <b>${count}</b>` : ''}</div>
-          <div style="margin-top: 12px; font-size: 11px; color: var(--muted);">You can leave this page — the fetch will finish on the server. Come back any time.</div>
+          <div style="margin-top: 12px; font-size: 11px; color: var(--muted);">You can leave this page — the fetch will finish on the server.</div>
         </div>`;
     }
-
-    function _errorMarkup(err) {
-      return `
-        <div class="empty">
-          <div class="empty-title">❌ Fetch failed</div>
-          <div class="empty-sub">${escapeHtml(err || 'Unknown error')}</div>
-          <button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button>
-        </div>`;
-    }
-
-    // Polling loop — kicks in whenever the server says "fetching" or "queued".
-    let _pollTimer = null;
-    let _pollStart = 0;          // wall time when this poll session started
-    const _POLL_STUCK_MS = 90_000; // 90s of "fetching" with no completion → flag as stuck
 
     async function _poll() {
       const s = await _serverFetchState();
       const slot = $('reviews-slot');
       if (!s) {
-        // Server has no record of any fetch — show idle empty state.
         clearTimeout(_pollTimer); _pollStart = 0;
         slot.innerHTML = `
           <div class="empty">
@@ -481,111 +491,27 @@
       }
       if (s.state === 'done') {
         clearTimeout(_pollTimer); _pollStart = 0;
-        // The job completed on the server. Our local sql.js may pre-date the DB write.
-        // Reload, then either render reviews (success) or fall back to empty state.
-        await reloadDb();
-        if (_localReviewCount() > 0) {
-          render();   // success path — reviews are in DB now
-          return;
-        }
-        // Edge case: status says done but 0 rows landed (rare). Show success-but-empty.
-        slot.innerHTML = `
-          <div class="empty">
-            <div class="empty-title">Fetch finished, but Play returned no reviews</div>
-            <div class="empty-sub">This app may genuinely have no English reviews yet, or be region-locked. Try a different country.</div>
-            <button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button>
-          </div>`;
-        wireFetchBtn();
+        // Invalidate cache and re-fetch reviews list
+        _cache.reviews = null;
+        render();
         return;
       }
       if (s.state === 'error') {
         clearTimeout(_pollTimer); _pollStart = 0;
-        slot.innerHTML = _errorMarkup(s.error);
+        slot.innerHTML = `<div class="empty"><div class="empty-title">❌ Fetch failed</div><div class="empty-sub">${escapeHtml(s.error || 'Unknown error')}</div><button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button></div>`;
         wireFetchBtn();
         return;
       }
-      // queued or fetching — start the deadline timer on first hit
       if (!_pollStart) _pollStart = Date.now();
-
-      // If the server's started_at is more than 90s old AND we haven't seen progress,
-      // assume the worker is stuck. Show a Retry option without waiting forever.
       const ageMs = s.started_at ? (Date.now() - new Date(s.started_at).getTime()) : 0;
-      const stuckByAge = ageMs > _POLL_STUCK_MS;
-      const stuckByPoll = (Date.now() - _pollStart) > _POLL_STUCK_MS;
-      if (stuckByAge || stuckByPoll) {
+      if (ageMs > _POLL_STUCK_MS || (Date.now() - _pollStart) > _POLL_STUCK_MS) {
         clearTimeout(_pollTimer); _pollStart = 0;
-        slot.innerHTML = `
-          <div class="empty">
-            <div class="empty-title">⏳ This is taking longer than expected</div>
-            <div class="empty-sub">The server says it's still <code>${escapeHtml(s.state)}</code>${s.started_at ? ' (started ' + Math.round(ageMs/1000) + 's ago)' : ''}, but we haven't seen progress. The worker may have stalled.</div>
-            <button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button>
-          </div>`;
+        slot.innerHTML = `<div class="empty"><div class="empty-title">⏳ Taking longer than expected</div><div class="empty-sub">Started ${Math.round(ageMs/1000)}s ago — the worker may have stalled.</div><button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button></div>`;
         wireFetchBtn();
         return;
       }
-
-      // Still progressing — show waiting markup and reschedule
       slot.innerHTML = _waitingMarkup(s.state, s.count || 0);
       _pollTimer = setTimeout(_poll, 2500);
-    }
-
-    function render() {
-      const slot = $('reviews-slot');
-      const { where, params } = buildWhere();
-      const cnt = safeExec(`SELECT COUNT(*) FROM ${state.table} ${where}`, params);
-      const total = cnt.length ? cnt[0].values[0][0] : 0;
-
-      if (total === 0) {
-        // We have 0 rows for this package matching current filters.
-        // Two possibilities:
-        //  (a) reviews ARE in DB but filters exclude them — fall through to empty-filter msg
-        //  (b) no reviews for this package at all — kick off the status check
-        const totalForPkg = _localReviewCount();
-        if (totalForPkg > 0) {
-          slot.innerHTML = `<div class="empty"><div class="empty-title">No reviews match these filters</div><div class="empty-sub">Try clearing the rating chips or search box.</div></div>`;
-          $('r-stats').innerHTML = `0 of <b>${totalForPkg.toLocaleString()}</b> reviews`;
-          $('r-prev').disabled = true; $('r-next').disabled = true;
-          $('r-info').textContent = '';
-          return;
-        }
-        // No reviews at all for this package — check server state.
-        $('r-stats').innerHTML = 'Checking…';
-        $('r-prev').disabled = true; $('r-next').disabled = true;
-        $('r-info').textContent = '';
-        slot.innerHTML = `<div class="loading-block"><span class="spinner"></span>Checking fetch status…</div>`;
-        _poll();
-        return;
-      }
-
-      const offset = state.page * state.pageSize;
-      const rows = safeExec(`
-        SELECT review_id, rating, text, user_name, posted_at, thumbs_up, app_version
-        FROM ${state.table} ${where}
-        ORDER BY ${state.sort} ${state.dir}
-        LIMIT ${state.pageSize} OFFSET ${offset}
-      `, params);
-      const data = rows.length ? rows[0].values : [];
-
-      slot.innerHTML = `<div class="reviews-list">${
-        data.map(r => {
-          const [, rating, text, user, posted, thumbs, ver] = r;
-          const date = posted ? new Date(posted).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : '';
-          return `<div class="review-row">
-            <div class="review-rating rating-${rating}">${rating}★</div>
-            <div class="review-body">
-              <div class="review-text">${escapeHtml(text || '')}</div>
-              <div class="review-user">${escapeHtml(user || 'Anonymous')}${ver ? ' · v' + escapeHtml(ver) : ''}${typeof thumbs === 'number' && thumbs > 0 ? ' · 👍 ' + thumbs : ''}</div>
-            </div>
-            <div class="review-meta">${date}</div>
-          </div>`;
-        }).join('')
-      }</div>`;
-
-      $('r-stats').innerHTML = `<b>${total.toLocaleString()}</b> reviews matching filters`;
-      const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
-      $('r-info').textContent = `Page ${state.page+1} / ${totalPages}`;
-      $('r-prev').disabled = state.page === 0;
-      $('r-next').disabled = state.page >= totalPages - 1;
     }
 
     function wireFetchBtn() {
@@ -601,10 +527,6 @@
             return;
           }
           if (!r.ok) { fb.textContent = '❌ HTTP ' + r.status; return; }
-          // Server queued the job. Hand off to the shared poller — it'll show
-          // the waiting-state UI, refresh when done, and survive page reloads
-          // (next time you land on this page, _poll picks up wherever the
-          // server is at).
           _poll();
         } catch (e) {
           fb.disabled = false; fb.textContent = '📥 Fetch reviews for this app';
@@ -613,45 +535,100 @@
       };
     }
 
-    // Wire filter controls
-    $('f-table').onchange = e => { state.table = e.target.value; state.page = 0; render(); };
-    $('f-search').oninput = e => { state.search = e.target.value; state.page = 0; render(); };
-    $('f-page').onchange = e => { state.pageSize = parseInt(e.target.value, 10) || 25; state.page = 0; render(); };
-    $('f-ratings').onclick = e => {
+    async function render() {
+      const slot = $('reviews-slot');
+      let payload;
+      try {
+        payload = await fetchReviews();
+      } catch (e) {
+        slot.innerHTML = `<div class="empty"><div class="empty-title">Failed to load reviews</div><div class="empty-sub">${escapeHtml(e.message || String(e))}</div></div>`;
+        return;
+      }
+      const total = payload.total || 0;
+      const rows = payload.rows || [];
+      if (total === 0 && state.ratings.size === 5 && !state.search.trim()) {
+        // Truly empty for this app — show fetch CTA via poll
+        $('r-stats').innerHTML = 'Checking…';
+        $('r-prev').disabled = true; $('r-next').disabled = true;
+        $('r-info').textContent = '';
+        slot.innerHTML = `<div class="loading-block"><span class="spinner"></span>Checking fetch status…</div>`;
+        _poll();
+        return;
+      }
+      if (total === 0) {
+        slot.innerHTML = `<div class="empty"><div class="empty-title">No reviews match these filters</div><div class="empty-sub">Try clearing rating chips or the search box.</div></div>`;
+        $('r-stats').innerHTML = '0 reviews matching filters';
+        $('r-prev').disabled = true; $('r-next').disabled = true;
+        $('r-info').textContent = '';
+        return;
+      }
+
+      slot.innerHTML = `<div class="reviews-list">${
+        rows.map(r => {
+          const date = r.posted_at ? new Date(r.posted_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : '';
+          return `<div class="review-row">
+            <div class="review-rating rating-${r.rating}">${r.rating}★</div>
+            <div class="review-body">
+              <div class="review-text">${escapeHtml(r.text || '')}</div>
+              <div class="review-user">${escapeHtml(r.user_name || 'Anonymous')}${r.app_version ? ' · v' + escapeHtml(r.app_version) : ''}${typeof r.thumbs_up === 'number' && r.thumbs_up > 0 ? ' · 👍 ' + r.thumbs_up : ''}</div>
+            </div>
+            <div class="review-meta">${date}</div>
+          </div>`;
+        }).join('')
+      }</div>`;
+
+      $('r-stats').innerHTML = `<b>${total.toLocaleString()}</b> reviews matching filters`;
+      const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+      $('r-info').textContent = `Page ${state.page+1} / ${totalPages}`;
+      $('r-prev').disabled = state.page === 0;
+      $('r-next').disabled = state.page >= totalPages - 1;
+    }
+
+    // wire filter controls
+    $('f-search').oninput = (e) => { state.search = e.target.value; state.page = 0; _cache.reviews = null; render(); };
+    $('f-page').onchange = (e) => { state.pageSize = parseInt(e.target.value, 10) || 25; state.page = 0; _cache.reviews = null; render(); };
+    $('f-ratings').onclick = (e) => {
       const p = e.target.closest('.pill');
       if (!p) return;
       const r = parseInt(p.dataset.r, 10);
       if (state.ratings.has(r)) state.ratings.delete(r); else state.ratings.add(r);
       if (!state.ratings.size) state.ratings = new Set([1,2,3,4,5]);
       p.classList.toggle('active', state.ratings.has(r));
-      state.page = 0; render();
+      state.page = 0; _cache.reviews = null; render();
     };
-    $('r-prev').onclick = () => { state.page--; render(); window.scrollTo({top: 0}); };
-    $('r-next').onclick = () => { state.page++; render(); window.scrollTo({top: 0}); };
+    $('r-prev').onclick = () => { state.page--; _cache.reviews = null; render(); window.scrollTo({top: 0}); };
+    $('r-next').onclick = () => { state.page++; _cache.reviews = null; render(); window.scrollTo({top: 0}); };
 
     render();
   }
 
   // ===========================================
-  // VIEW: Developer (siblings + portfolio)
+  // VIEW: Developer
   // ===========================================
-  function renderDeveloper() {
-    if (!app || !app.developer_id) {
-      content.innerHTML = `<div class="empty"><div class="empty-title">Developer info unavailable</div><div class="empty-sub">We don't have a developer-id for this app yet. Try the developer-lookup tool from the legacy view.</div></div>`;
+  async function _renderDeveloper() {
+    const a = _state.about?.app;
+    if (!a || !a.developer_id) {
+      content.innerHTML = `<div class="empty"><div class="empty-title">Developer info unavailable</div><div class="empty-sub">No developer-id captured for this app.</div></div>`;
       return;
     }
-    const r = db.exec(`
-      SELECT package_name, title, icon, installs_per_month, score, released
-      FROM apps_ranked WHERE developer_id=$d AND package_name<>$pkg
-      ORDER BY installs_per_month DESC NULLS LAST LIMIT 50
-    `, { '$d': app.developer_id, '$pkg': pkg });
-    const rows = r.length ? r[0].values : [];
-
+    if (!_cache.siblings) {
+      content.innerHTML = `<div class="loading-block"><span class="spinner"></span>Loading developer portfolio…</div>`;
+      try {
+        const r = await fetch(`/api/app/${encodeURIComponent(pkg)}/siblings`, { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        _cache.siblings = await r.json();
+      } catch (e) {
+        content.innerHTML = `<div class="empty"><div class="empty-title">Failed to load siblings</div><div class="empty-sub">${escapeHtml(e.message)}</div></div>`;
+        return;
+      }
+    }
+    const data = _cache.siblings;
+    const rows = data.siblings || [];
     content.innerHTML = `
-      <h2 class="section-title">👤 ${escapeHtml(app.developer || 'Developer')}</h2>
+      <h2 class="section-title">👤 ${escapeHtml(data.developer || 'Developer')}</h2>
       <div class="section-card">
         <p style="margin: 0 0 12px; color: var(--muted); font-size: 13px;">
-          Other apps from <b>${escapeHtml(app.developer)}</b> in our DB.
+          Other apps from <b>${escapeHtml(data.developer || '')}</b> in our DB.
           ${rows.length === 0 ? '' : `${rows.length} sibling app${rows.length===1?'':'s'} ranked by install velocity.`}
         </p>
         ${rows.length === 0 ? `
@@ -661,37 +638,36 @@
           </div>
         ` : `
           <div class="dev-list">
-            ${rows.map(row => {
-              const [pn, title, icon, ipm, score, released] = row;
-              return `<a class="dev-app" href="/app/${encodeURIComponent(pn)}/details?show=review" style="text-decoration:none;color:inherit">
-                ${icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : '<div></div>'}
-                <div class="dev-app-title">${escapeHtml(title || pn)}</div>
-                <div class="dev-app-num">${fmtInst(ipm)}/mo</div>
-                <div class="dev-app-num">${score ? '★ ' + score.toFixed(1) : '—'}</div>
-              </a>`;
-            }).join('')}
+            ${rows.map(row => `
+              <a class="dev-app" href="/app/${encodeURIComponent(row.package_name)}/details?show=review" style="text-decoration:none;color:inherit">
+                ${row.icon ? `<img src="${escapeHtml(row.icon)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : '<div></div>'}
+                <div class="dev-app-title">${escapeHtml(row.title || row.package_name)}</div>
+                <div class="dev-app-num">${fmtInst(row.installs_per_month)}/mo</div>
+                <div class="dev-app-num">${row.score ? '★ ' + row.score.toFixed(1) : '—'}</div>
+              </a>
+            `).join('')}
           </div>
         `}
       </div>`;
   }
 
   // ===========================================
-  // VIEW: Revenue (Fermi est + Pro lock)
+  // VIEW: Revenue (computed locally from cached app data — no fetch)
   // ===========================================
-  function renderRevenue() {
-    if (!app) {
-      content.innerHTML = `<div class="empty"><div class="empty-title">App not in DB</div></div>`;
+  function _renderRevenue() {
+    const a = _state.about?.app;
+    if (!a) {
+      content.innerHTML = `<div class="empty"><div class="empty-title">App data missing</div></div>`;
       return;
     }
-    const ipm = app.installs_per_month || 0;
-    const cumInstalls = app.min_installs || 0;
-    // Light Fermi: ARPU varies; show RANGE not exact number.
-    const arpuLow  = app.offers_iap ? 0.4  : (app.contains_ads ? 0.15 : 0.05);
-    const arpuHigh = app.offers_iap ? 1.5  : (app.contains_ads ? 0.5  : 0.10);
-    const mau = cumInstalls * 0.10;   // active fraction proxy
+    const ipm = a.installs_per_month || 0;
+    const cumInstalls = a.min_installs || 0;
+    const arpuLow  = a.offers_iap ? 0.4  : (a.contains_ads ? 0.15 : 0.05);
+    const arpuHigh = a.offers_iap ? 1.5  : (a.contains_ads ? 0.5  : 0.10);
+    const mau = cumInstalls * 0.10;
     const lowEst  = Math.round(mau * arpuLow);
     const highEst = Math.round(mau * arpuHigh);
-    const moneyName = app.offers_iap ? 'In-app purchases (subscriptions or one-time)' : (app.contains_ads ? 'Ad-supported' : 'No ads · no IAP');
+    const moneyName = a.offers_iap ? 'In-app purchases (subscriptions or one-time)' : (a.contains_ads ? 'Ad-supported' : 'No ads · no IAP');
 
     content.innerHTML = `
       <h2 class="section-title">💰 Monetization & revenue estimate</h2>
@@ -726,7 +702,7 @@
         <div class="pro-lock">
           <div class="pro-lock-icon">🔒</div>
           <div class="pro-lock-title">Real revenue + 30-day trends are a Pro feature</div>
-          <div class="pro-lock-sub">Sensor-Tower-grade revenue estimates (per-country, per-day) are available on the Pro plan once we add the data partnership. For now, the Fermi estimate above is the best we can show.</div>
+          <div class="pro-lock-sub">Sensor-Tower-grade revenue estimates (per-country, per-day) are a Pro plan feature once we add the data partnership. For now, the Fermi estimate above is the best we can show.</div>
           <a class="btn-primary" href="/dashboard">See plans →</a>
         </div>` : ''}
     `;
