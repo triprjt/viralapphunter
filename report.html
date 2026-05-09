@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}" />
+  <link rel="canonical" href="{{CANONICAL}}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="{{TITLE}}" />
+  <meta property="og:description" content="{{DESCRIPTION}}" />
+  <meta property="og:url" content="{{CANONICAL}}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{TITLE}}" />
+  <meta name="twitter:description" content="{{DESCRIPTION}}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script type="application/ld+json">{{JSON_LD}}</script>
+  <style>
+    :root {
+      --bg: #FFFCF5; --panel: #FFFFFF; --panel-2: #F1F5F9;
+      --border: #E5E7EB; --text: #0F172A; --muted: #64748B;
+      --accent: #7C3AED;
+      --mint: #06D6A0; --coral: #FF6B6B; --violet: #7C3AED;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.55 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .brand { font-weight: 900; font-size: 20px; letter-spacing: -0.02em; color: var(--text); }
+    .brand .accent { background: linear-gradient(135deg, var(--coral), var(--violet) 60%, var(--mint));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-cta { color: var(--muted); font-size: 13px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; }
+    .nav-cta:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+
+    main { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+    h1 { font-size: 36px; font-weight: 900; letter-spacing: -0.02em; margin: 0 0 6px; line-height: 1.1; }
+    h1 .gradient { background: linear-gradient(120deg, var(--coral), var(--violet) 50%, var(--mint));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--muted); font-size: 15px; margin: 0 0 36px; }
+
+    .rep-list { list-style: none; padding: 0; margin: 0 0 32px; }
+    .rep-row { display: grid; grid-template-columns: 32px 56px 1fr; gap: 14px; align-items: center;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 12px;
+    }
+    .rep-rank { font-weight: 900; font-size: 22px; color: var(--muted); text-align: center; }
+    .rep-icon img { width: 56px; height: 56px; border-radius: 12px; display: block; }
+    .ico-fallback { display: block; width: 56px; height: 56px; border-radius: 12px; background: var(--panel-2); }
+    .rep-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .rep-title { color: var(--text); font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rep-meta { color: var(--muted); font-size: 13px; }
+    .delta { font-weight: 700; }
+    .delta-up { color: var(--mint); }
+    .delta-down { color: var(--coral); }
+    .delta-new { color: var(--accent); }
+
+    .nav-weeks { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 32px; font-size: 14px; }
+    .nav-weeks a { color: var(--muted); padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; }
+    .nav-weeks a:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+
+    .cta {
+      background: linear-gradient(135deg, var(--violet), var(--coral));
+      border-radius: 16px; padding: 28px 24px; text-align: center; color: white; margin: 0 0 16px;
+    }
+    .cta h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; }
+    .cta p { margin: 0 0 16px; opacity: 0.9; font-size: 14px; }
+    .cta a { display: inline-block; background: white; color: var(--violet); font-weight: 800;
+      padding: 12px 24px; border-radius: 999px; font-size: 14px; }
+    .cta a:hover { text-decoration: none; transform: translateY(-1px); }
+
+    footer { color: var(--muted); font-size: 13px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="brand">Viral<span class="accent">Finder</span></a>
+  <a href="/auth/google/start" class="nav-cta">Sign in →</a>
+</nav>
+
+<main>
+  <article>
+    <h1 class="gradient-wrap"><span class="gradient">{{H1}}</span></h1>
+    <p class="subtitle">{{SUBTITLE}}</p>
+
+    <ol class="rep-list">
+      {{ROWS}}
+    </ol>
+
+    <div class="nav-weeks">
+      {{PREV_LINK}}
+      {{NEXT_LINK}}
+    </div>
+
+    <div class="cta">
+      <h2>Want the gap report for any of these?</h2>
+      <p>See unmet user needs, top reviews, and competitive niches inside ViralFinder.</p>
+      <a href="/auth/google/start">Sign in with Google →</a>
+    </div>
+  </article>
+
+  <footer>
+    Updated weekly · <a href="/sitemap.xml">All weekly reports</a> · <a href="/">ViralFinder</a>
+  </footer>
+</main>
+
+</body>
+</html>

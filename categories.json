@@ -3,12 +3,13 @@
     "id": "SPIRITUAL_RELIGIOUS",
     "name": "Spiritual & Religious",
     "genre_ids": ["LIFESTYLE", "BOOKS_AND_REFERENCE"],
+    "genre_deny": ["FINANCE", "BUSINESS", "SHOPPING", "AUTO_AND_VEHICLES", "DATING", "WEATHER", "FOOD_AND_DRINK", "HOUSE_AND_HOME", "GAME", "GAMES", "ACTION", "ADVENTURE", "ARCADE", "BOARD", "CARD", "CASINO", "CASUAL", "EDUCATIONAL_GAMES", "MUSIC_GAMES", "PUZZLE", "RACING", "ROLE_PLAYING", "SIMULATION", "SPORTS_GAMES", "STRATEGY", "TRIVIA", "WORD"],
     "keywords": [
       "spiritual", "meditation", "prayer", "bible", "quran",
-      "bhagavad gita", "bhajan", "mantra", "mandir", "temple",
-      "puja", "aarti", "hanuman chalisa", "yoga", "kundli",
-      "horoscope", "astrology", "rosary", "namaz", "zen",
-      "buddhism", "hinduism", "christianity", "islam", "sikh",
+      "bhagavad gita", "bhajan", "mantra", "mandir", "hindu temple",
+      "puja", "aarti", "hanuman chalisa", "yoga meditation", "kundli",
+      "horoscope", "astrology", "rosary", "namaz", "zen meditation",
+      "buddhism", "hinduism", "christianity", "islam", "sikhism",
       "gurbani", "devotional", "kirtan", "pooja", "vedic",
       "spirituality", "chakra", "mindfulness", "om chanting"
     ]

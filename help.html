@@ -4,30 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>How to use ViralFinder</title>
-  <script>
-    (function() {
-      try { if (localStorage.getItem('vf-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
-    })();
-  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0f1115;
-      --panel: #171a21;
-      --panel-2: #1f242d;
-      --border: #2a313d;
-      --text: #e6e8ee;
-      --muted: #8a93a6;
-      --accent: #6ea8ff;
-      --mint: #06D6A0; --coral: #FF6B6B; --coral-deep: #F04848;
-      --sunshine: #FFD23F; --violet: #7C3AED; --ink: #0B1220; --peach: #FFE8D6;
-    }
-    :root[data-theme="light"] {
       --bg: #FFFCF5; --panel: #FFFFFF; --panel-2: #F1F5F9;
       --border: #E5E7EB; --text: #0F172A; --muted: #64748B;
       --accent: #7C3AED;
+      --mint: #06D6A0; --coral: #FF6B6B; --coral-deep: #F04848;
+      --sunshine: #FFD23F; --violet: #7C3AED; --ink: #0B1220; --peach: #FFE8D6;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0f1115; --panel: #171a21; --panel-2: #1f242d;
+      --border: #2a313d; --text: #e6e8ee; --muted: #8a93a6;
+      --accent: #6ea8ff;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 16px/1.6 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; transition: background-color 0.2s, color 0.2s; }
@@ -71,9 +62,9 @@
 <body>
 
 <nav>
-  <a href="/app" class="brand">Viral<span class="accent">Finder</span></a>
+  <a href="/dashboard" class="brand">Viral<span class="accent">Finder</span></a>
   <div class="nav-actions">
-    <a href="/app" class="back-link">← Back to dashboard</a>
+    <a href="/dashboard" class="back-link">← Back to dashboard</a>
     <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
       <span id="theme-icon">🌙</span>
     </button>
@@ -106,7 +97,7 @@
 
   <footer>
     <a href="mailto:hello@viralfinder.app">hello@viralfinder.app</a>
-    <a href="/app">📜 Activity log (in dashboard)</a>
+    <a href="/dashboard">📜 Activity log (in dashboard)</a>
     <a href="/auth/logout">🚪 Sign out</a>
   </footer>
 </main>
@@ -116,17 +107,21 @@
     const btn = document.getElementById('theme-toggle');
     const icon = document.getElementById('theme-icon');
     function refresh() {
-      const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      const cur = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
       icon.textContent = cur === 'dark' ? '🌙' : '☀️';
       btn.title = cur === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
     }
     refresh();
     btn.onclick = () => {
-      const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-      const next = cur === 'light' ? 'dark' : 'light';
-      if (next === 'light') document.documentElement.dataset.theme = 'light';
+      const cur = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      if (next === 'dark') document.documentElement.dataset.theme = 'dark';
       else delete document.documentElement.dataset.theme;
-      try { localStorage.setItem('vf-theme', next); } catch (e) {}
+      fetch('/api/me/theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: next })
+      }).catch(() => {});
       refresh();
     };
   })();

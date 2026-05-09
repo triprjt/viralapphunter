@@ -1,5 +1,6 @@
 # Launch Plan: ViralFinder (working title)
 
+
 ## Context
 
 What we have built locally is, in MBB terms, a **competitive intelligence and viral-app discovery tool for the Google Play ecosystem**. Today's enterprise incumbents (Sensor Tower, data.ai, Apptopia, AppFollow) charge $5k–$50k/year and target VCs and large studios. The under-served wedge is **the indie-developer / solo-founder / micro-studio segment** that needs the same insights at a $30–300/month price point — and crucially, needs not just data but **a recipe**: which app to build, what's missing in the existing apps, and a starter blueprint.

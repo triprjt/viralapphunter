@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 reviews.db
 reviews.db-journal
 reviews.db-shm
@@ -9,3 +11,11 @@ __pycache__/
 *.pyc
 .claude/
 .DS_Store
+
+# Runtime artifacts (regenerated each run)
+discovery_failures.json
+
+# Misc local files that shouldn't ship
+*.xlsx
+/tmp/
+*.log

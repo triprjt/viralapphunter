@@ -278,6 +278,81 @@ def migrate_backfill(conn: sqlite3.Connection) -> int:
     return n_updated
 
 
+def _normalize_genre(g: str | None) -> str:
+    """Normalize a genre string for comparison ('Health & Fitness' → 'HEALTH_AND_FITNESS')."""
+    if not g:
+        return ""
+    return g.upper().replace(" & ", "_AND_").replace(" ", "_").replace("-", "_")
+
+
+def scrub_genre_mismatches(conn: sqlite3.Connection, dry_run: bool = False) -> dict:
+    """Walk every discovered app and remove category tags where the app's actual
+    Play-store genre is in the category's `genre_deny` list (e.g. a FINANCE app
+    tagged SPIRITUAL_RELIGIOUS).
+
+    Uses a denylist (not allowlist) because spiritual content legitimately spans
+    most Play genres — only obviously-incompatible genres (banking, games,
+    shopping) get stripped.
+
+    Returns counts; if dry_run=True, no writes are made.
+    """
+    cats = {
+        c["id"]: {_normalize_genre(g) for g in (c.get("genre_deny") or [])}
+        for c in load_categories()
+    }
+    cats = {k: v for k, v in cats.items() if v}  # only categories that have a denylist
+    if not cats:
+        return {"scanned": 0, "updated": 0, "removed_tags": 0, "preserved": 0, "samples": []}
+
+    rows = conn.execute(
+        """
+        SELECT d.package_name, d.title, e.genre, d.categories
+        FROM discovered_apps d
+        JOIN apps_enriched e ON e.package_name = d.package_name
+        WHERE e.genre IS NOT NULL AND COALESCE(d.categories, '') <> ''
+        """
+    ).fetchall()
+
+    updated = 0
+    removed_tags = 0
+    samples: list[tuple[str, str, str, str, str]] = []
+
+    for pkg, title, genre, cats_csv in rows:
+        genre_norm = _normalize_genre(genre)
+        if not genre_norm:
+            continue
+        current = [c for c in (cats_csv or "").split(",") if c]
+        kept = []
+        for cid in current:
+            denylist = cats.get(cid)
+            # Strip only if the app's genre is explicitly denied for this category.
+            if denylist and genre_norm in denylist:
+                continue
+            kept.append(cid)
+        if len(kept) == len(current):
+            continue
+        new_csv = ",".join(sorted(kept))
+        removed = len(current) - len(kept)
+        removed_tags += removed
+        updated += 1
+        if len(samples) < 25:
+            samples.append((pkg, title, genre, ",".join(sorted(current)), new_csv or "(none)"))
+        if not dry_run:
+            conn.execute(
+                "UPDATE discovered_apps SET categories = ? WHERE package_name = ?",
+                (new_csv, pkg),
+            )
+    if not dry_run:
+        conn.commit()
+    return {
+        "scanned": len(rows),
+        "updated": updated,
+        "removed_tags": removed_tags,
+        "preserved": len(rows) - updated,
+        "samples": samples,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Discover Google Play apps by keyword search, scoped to curated categories")
     parser.add_argument("--db", default="reviews.db", help="SQLite path")
@@ -288,6 +363,10 @@ def main() -> int:
     parser.add_argument("--all", action="store_true", help="Run discovery for every category")
     parser.add_argument("--keywords", nargs="*", help="Override: search arbitrary keywords (no category tag)")
     parser.add_argument("--migrate", action="store_true", help="Backfill the categories CSV column for existing apps")
+    parser.add_argument("--scrub-bad-tags", action="store_true",
+                        help="Remove category tags from apps whose Play-store genre doesn't match the category's genre_ids")
+    parser.add_argument("--scrub-dry-run", action="store_true",
+                        help="Print what --scrub-bad-tags would do but don't write")
     parser.add_argument("--list", action="store_true", help="Print available categories and exit")
     parser.add_argument("--retry-failed", action="store_true", help="Re-attempt every (category,keyword) listed in discovery_failures.json")
     parser.add_argument("--no-enrich", action="store_true", help="Skip the post-discovery enrichment step")
@@ -304,6 +383,19 @@ def main() -> int:
     if args.migrate:
         n = migrate_backfill(conn)
         print(f"backfilled categories on {n} rows")
+        conn.close()
+        return 0
+
+    if args.scrub_bad_tags or args.scrub_dry_run:
+        result = scrub_genre_mismatches(conn, dry_run=args.scrub_dry_run)
+        print(f"scanned={result['scanned']} updated={result['updated']} "
+              f"removed_tags={result['removed_tags']} preserved={result['preserved']}")
+        if result["samples"]:
+            print("\nsample changes:")
+            for pkg, title, genre, before, after in result["samples"]:
+                print(f"  {pkg!s:<40} genre={genre!s:<22}  {before}  →  {after}")
+        if args.scrub_dry_run:
+            print("\n(dry run — no writes)")
         conn.close()
         return 0
 

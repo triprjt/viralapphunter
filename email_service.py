@@ -228,33 +228,43 @@ def _onboarded(user: dict) -> tuple[str, str, str]:
 
 
 PAYWALL_LABELS = {
-    "review_fetch": ("review fetch", "fetch all reviews on a second app"),
-    "developer_lookup": ("developer lookup", "pull a second developer's full catalog"),
-    "ai_summary": ("AI gap report", "generate a second AI gap report"),
+    # (label, action, period_phrase) — period_phrase tells the email when the cap resets
+    "review_fetch":     ("review fetch",     "fetch reviews on another app",        "this week"),
+    "export":           ("CSV export",       "export another scoped dataset",       "this week"),
+    "developer_lookup": ("developer lookup", "pull a second developer's catalog",   "ever"),
+    "ai_summary":       ("AI gap report",    "generate a second AI gap report",     "ever"),
 }
 
 
 def _paywall_hit(user: dict, feature: str) -> tuple[str, str, str]:
-    label, action = PAYWALL_LABELS.get(feature, (feature.replace("_", " "), "use this feature again"))
-    subject = f"Liked your free {label}? Here's what $29 unlocks."
+    fallback = (feature.replace("_", " "), "use this feature again", "this week")
+    label, action, period = PAYWALL_LABELS.get(feature, fallback)
+    period_word = "weekly" if period == "this week" else "free"
+    subject = f"Hit your {period_word} limit on {label}? Here's what $29 unlocks."
+    weekly_line = (
+        "Your free plan includes <strong>3 review fetches per week</strong> and <strong>1 export per week</strong> — "
+        "enough to keep tasting the product. The slot resets on the same day next week."
+    ) if period == "this week" else (
+        "Your free plan includes <strong>1 lifetime sample</strong> per premium feature so you can feel the magic before paying."
+    )
     html = _wrap_html(
-        "You hit your free limit — what's next",
-        f"""<p>You just tried to {action}. The free plan includes <strong>1 lifetime sample</strong> per premium feature so you can feel the magic before paying.</p>
-        <p>Ready for unlimited?</p>
+        f"You hit your {period_word} limit — what's next",
+        f"""<p>You just tried to {action}. {weekly_line}</p>
+        <p>Ready for room to breathe?</p>
         <p><strong>Solo · $29 / month</strong></p>
         <ul>
-          <li>100 review fetches / month</li>
+          <li>Unlimited review fetches</li>
+          <li>10 CSV exports / week</li>
           <li>50 AI gap reports / month</li>
           <li>Unlimited developer-catalog lookups</li>
           <li>Weekly email digest of new viral candidates</li>
-          <li>CSV export</li>
         </ul>
         <p style=\"margin-top:18px\"><a href=\"{SITE_URL}/app\" style=\"display:inline-block;background:#FF6B6B;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:600\">Upgrade to Solo →</a></p>
         <p style=\"font-size:12px;color:#888;margin-top:18px\">Cancel any time, no contracts, no sales call.</p>""",
     )
     text = (
-        f"You hit the free limit on {label}. Solo at $29/mo unlocks: 100 review fetches, "
-        f"50 AI gap reports, unlimited developer lookups, weekly digest, CSV export.\n\n"
+        f"You hit the {period_word} limit on {label}. Solo at $29/mo unlocks: unlimited review fetches, "
+        f"10 CSV exports/week, 50 AI gap reports/month, unlimited developer lookups, weekly digest.\n\n"
         f"Upgrade: {SITE_URL}/app\n"
     )
     return subject, html, text

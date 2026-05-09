@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App details · Viral App Hunter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #FFFCF5; --panel: #FFFFFF; --panel-2: #F1F5F9;
+      --border: #E5E7EB; --text: #0F172A; --muted: #64748B;
+      --accent: #7C3AED; --violet: #7C3AED; --violet-soft: #A78BFA;
+      --mint: #06D6A0; --mint-deep: #04B587; --coral: #FF6B6B; --coral-deep: #F04848;
+      --sunshine: #FFD23F; --bad: #EF4444;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0f1115; --panel: #171a21; --panel-2: #1f242d;
+      --border: #2a313d; --text: #e6e8ee; --muted: #8a93a6; --accent: #6ea8ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; background: var(--panel-2); padding: 2px 6px; border-radius: 4px; }
+
+    header { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10; }
+    .brand { font-weight: 900; font-size: 18px; letter-spacing: -0.02em; color: var(--text); }
+    .brand .accent { background: linear-gradient(135deg, var(--coral), var(--violet) 60%, var(--mint)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-actions { display: flex; gap: 12px; align-items: center; }
+    .back-link { color: var(--muted); font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; }
+    .back-link:hover { color: var(--text); border-color: var(--accent); text-decoration: none; }
+
+    main { max-width: 1080px; margin: 0 auto; padding: 24px 28px 80px; }
+
+    /* App banner */
+    .app-banner { display: flex; gap: 18px; align-items: flex-start; padding: 18px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 16px; }
+    .app-banner-icon img, .app-banner-fallback { width: 80px; height: 80px; border-radius: 16px; flex-shrink: 0; background: var(--panel-2); display: block; }
+    .app-banner-id { flex: 1; min-width: 0; }
+    .app-banner-title { margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+    .app-banner-meta { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .app-banner-meta code { font-size: 11px; }
+    .app-banner-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.4; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
+    .chip-rating { color: var(--sunshine); border-color: color-mix(in srgb, var(--sunshine) 35%, var(--border)); background: color-mix(in srgb, var(--sunshine) 12%, var(--panel)); }
+    .chip-installs { color: var(--violet); border-color: color-mix(in srgb, var(--violet) 30%, var(--border)); background: color-mix(in srgb, var(--violet) 8%, var(--panel)); }
+    .chip-money-iap { color: var(--mint-deep); border-color: color-mix(in srgb, var(--mint) 35%, var(--border)); background: color-mix(in srgb, var(--mint) 10%, var(--panel)); }
+    .chip-money-ads { color: var(--violet); }
+    .chip-money-free { color: var(--muted); }
+
+    /* About + Q&A (appears below the banner, above the view-switcher) */
+    .about-skel { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+    .about-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+    .about-h { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .about-desc-body { font-size: 14px; line-height: 1.55; color: var(--text); white-space: pre-wrap; }
+    .about-more { margin-top: 8px; padding: 5px 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; cursor: pointer; color: var(--muted); }
+    .about-more:hover { color: var(--text); border-color: var(--accent); }
+    .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .qa-item { padding: 10px 12px; background: var(--panel-2); border-radius: 8px; }
+    .qa-q { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; margin-bottom: 4px; text-transform: uppercase; }
+    .qa-a { font-size: 13px; line-height: 1.45; color: var(--text); }
+    .qa-verdict { grid-column: 1 / -1; background: linear-gradient(135deg, color-mix(in srgb, var(--violet) 8%, var(--panel)) 0%, color-mix(in srgb, var(--coral) 5%, var(--panel)) 100%); border: 1px solid color-mix(in srgb, var(--violet) 25%, var(--border)); }
+    .qa-verdict .qa-q { color: var(--violet); }
+    .qa-verdict .qa-a { font-weight: 600; font-size: 14px; }
+    .qa-niche_density, .qa-niche_leader { grid-column: 1 / -1; }
+    @media (max-width: 720px) {
+      .qa-grid { grid-template-columns: 1fr; }
+      .qa-niche_density, .qa-niche_leader, .qa-verdict { grid-column: 1; }
+    }
+
+    /* Cross-link buttons (jump between detail views for the same app) */
+    .view-switcher { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; padding: 10px 14px; background: var(--panel-2); border-radius: 10px; }
+    .view-btn { padding: 7px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--panel); color: var(--text); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+    .view-btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .view-btn.active { background: var(--violet); color: #fff; border-color: var(--violet); }
+
+    /* Section title */
+    .section-title { margin: 0 0 12px; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: var(--text); }
+    .section-card { padding: 18px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; }
+
+    /* Filters */
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 12px; background: var(--panel-2); border-radius: 10px; margin-bottom: 14px; }
+    .filters label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .filters input, .filters select { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; }
+    .ratings { display: flex; gap: 4px; }
+    .pill { padding: 5px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); font-size: 11px; cursor: pointer; user-select: none; font-weight: 600; }
+    .pill.active { background: var(--violet); color: #fff; border-color: var(--violet); }
+
+    .stats { font-size: 12px; color: var(--muted); padding: 6px 4px; }
+    .stats b { color: var(--text); }
+
+    /* Reviews table */
+    .reviews-list { display: flex; flex-direction: column; gap: 8px; }
+    .review-row { padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; display: grid; grid-template-columns: 56px 1fr 110px; gap: 12px; align-items: flex-start; }
+    .review-rating { font-weight: 800; font-size: 13px; padding: 4px 8px; border-radius: 6px; text-align: center; line-height: 1; height: fit-content; }
+    .rating-5, .rating-4 { background: color-mix(in srgb, var(--mint) 15%, var(--panel)); color: var(--mint-deep); }
+    .rating-3 { background: var(--panel-2); color: var(--text); }
+    .rating-2, .rating-1 { background: color-mix(in srgb, var(--coral) 15%, var(--panel)); color: var(--coral-deep); }
+    .review-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .review-text { font-size: 13px; line-height: 1.5; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+    .review-user { font-size: 11px; color: var(--muted); }
+    .review-meta { font-size: 11px; color: var(--muted); text-align: right; }
+
+    /* Pager */
+    .pager { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; gap: 12px; }
+    .pager button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; font-size: 13px; }
+    .pager button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pager .info { color: var(--muted); font-size: 12px; }
+
+    /* Empty / fetch CTA */
+    .empty { padding: 32px 20px; text-align: center; background: var(--panel); border: 1px dashed var(--border); border-radius: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .empty-sub { color: var(--muted); font-size: 13px; margin: 0 auto 16px; max-width: 480px; }
+    .btn-primary { background: var(--violet); color: #fff; border: 1px solid var(--violet); border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-primary:hover { background: var(--violet-soft); border-color: var(--violet-soft); }
+    .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
+    /* Pro lock */
+    .pro-lock { padding: 28px 20px; text-align: center; background: linear-gradient(135deg, color-mix(in srgb, var(--violet) 8%, var(--panel)) 0%, color-mix(in srgb, var(--coral) 6%, var(--panel)) 100%); border: 1px dashed color-mix(in srgb, var(--violet) 35%, var(--border)); border-radius: 12px; }
+    .pro-lock-icon { font-size: 36px; margin-bottom: 8px; }
+    .pro-lock-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .pro-lock-sub { color: var(--muted); font-size: 13px; max-width: 460px; margin: 0 auto 14px; }
+
+    /* Developer view */
+    .dev-list { display: flex; flex-direction: column; gap: 8px; }
+    .dev-app { display: grid; grid-template-columns: 36px 1fr 100px 80px; gap: 12px; padding: 10px 12px; background: var(--panel-2); border-radius: 8px; align-items: center; }
+    .dev-app img { width: 36px; height: 36px; border-radius: 8px; }
+    .dev-app .dev-app-title { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dev-app .dev-app-num { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); text-align: right; }
+
+    /* Loading */
+    .loading-block { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--violet); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 720px) {
+      header { padding: 12px 16px; }
+      main { padding: 14px 14px 60px; }
+      .app-banner { padding: 14px; gap: 12px; }
+      .app-banner-icon img, .app-banner-fallback { width: 60px; height: 60px; border-radius: 12px; }
+      .app-banner-title { font-size: 18px; }
+      .review-row { grid-template-columns: 44px 1fr; }
+      .review-meta { grid-column: 2; text-align: left; }
+      .dev-app { grid-template-columns: 36px 1fr auto; }
+      .dev-app .dev-app-num:first-of-type { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/dashboard" class="brand">Viral<span class="accent">AppHunter</span></a>
+  <div class="nav-actions">
+    <a href="/dashboard" class="back-link">← Back to dashboard</a>
+  </div>
+</header>
+
+<main>
+  <div id="banner-slot">
+    <div class="loading-block"><span class="spinner"></span>Loading app metadata…</div>
+  </div>
+
+  <div id="about-slot"></div>
+
+  <div class="view-switcher" id="switcher">
+    <a class="view-btn" id="vb-review" data-show="review">📖 Reviews</a>
+    <a class="view-btn" id="vb-developer" data-show="developer">👤 Developer</a>
+    <a class="view-btn" id="vb-revenue" data-show="revenue">💰 Revenue</a>
+    <a class="view-btn" id="vb-store" target="_blank" rel="noopener">↗ Open in Play Store</a>
+  </div>
+
+  <section id="content">
+    <div class="loading-block"><span class="spinner"></span>Loading…</div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script>
+(async () => {
+  // ---- URL params ----
+  const path = window.location.pathname;             // e.g. /app/com.foo.bar/details
+  const m = path.match(/^\/app\/([^/]+)\/details\/?$/);
+  const pkg = m ? decodeURIComponent(m[1]) : '';
+  const params = new URLSearchParams(window.location.search);
+  const show = (params.get('show') || 'review').toLowerCase();
+
+  // ---- vf-user meta (for plan-aware features) ----
+  const vfUser = document.querySelector('meta[name="vf-user"]');
+  const userPlan = (vfUser?.dataset.plan || 'free').toLowerCase();
+  const userIsFree = userPlan === 'free';
+
+  if (!pkg) {
+    document.getElementById('content').innerHTML = '<div class="empty"><div class="empty-title">Missing app id</div><a href="/dashboard">← Back to dashboard</a></div>';
+    return;
+  }
+
+  // ---- Switcher: highlight active + wire links ----
+  ['review','developer','revenue'].forEach(v => {
+    const el = document.getElementById('vb-' + v);
+    if (el) {
+      el.href = `/app/${encodeURIComponent(pkg)}/details?show=${v}`;
+      if (v === show) el.classList.add('active');
+    }
+  });
+  document.getElementById('vb-store').href = `https://play.google.com/store/apps/details?id=${encodeURIComponent(pkg)}`;
+
+  // ---- Helpers ----
+  const $ = id => document.getElementById(id);
+  function escapeHtml(s) { return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  function fmtInst(n) {
+    if (!n) return '0'; n = Number(n);
+    if (n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1e3) return Math.round(n/1e3) + 'K';
+    return String(n);
+  }
+  function fmtRev(n) {
+    if (!n) return '$0'; n = Number(n);
+    if (n >= 1e6) return '$' + (n/1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1e3) return '$' + (n/1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+    return '$' + Math.round(n);
+  }
+
+  // ---- Load sql.js + reviews.db ----
+  let SQL, db;
+  try {
+    SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+    const buf = await fetch('/reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => {
+      if (!r.ok) throw new Error('reviews.db fetch failed: ' + r.status);
+      return r.arrayBuffer();
+    });
+    db = new SQL.Database(new Uint8Array(buf));
+  } catch (e) {
+    document.getElementById('content').innerHTML = `<div class="empty"><div class="empty-title">Failed to load DB</div><div class="empty-sub">${escapeHtml(e.message || String(e))}</div></div>`;
+    return;
+  }
+  function safeExec(sql, params) { try { return db.exec(sql, params); } catch { return []; } }
+
+  // ---- Fetch app metadata from apps_ranked ----
+  let app = null;
+  try {
+    const r = db.exec(`
+      SELECT package_name, title, developer, developer_id, icon, released,
+             installs_per_month, min_installs, score, ratings, reviews,
+             histogram_1, histogram_2, histogram_3, histogram_4, histogram_5,
+             genre, contains_ads, offers_iap, categories
+      FROM apps_ranked WHERE package_name=$pkg LIMIT 1
+    `, { '$pkg': pkg });
+    if (r.length) {
+      const cols = r[0].columns;
+      app = {};
+      cols.forEach((c, i) => app[c] = r[0].values[0][i]);
+    }
+  } catch (e) {
+    console.error('app metadata query failed', e);
+  }
+
+  // ---- Render the banner ----
+  const bannerSlot = $('banner-slot');
+  if (!app) {
+    bannerSlot.innerHTML = `
+      <div class="app-banner">
+        <div class="app-banner-fallback"></div>
+        <div class="app-banner-id">
+          <h1 class="app-banner-title">${escapeHtml(pkg)}</h1>
+          <div class="app-banner-meta">App not in our local DB yet · <code>${escapeHtml(pkg)}</code></div>
+        </div>
+      </div>`;
+  } else {
+    const moneyChip = app.offers_iap ? '<span class="chip chip-money-iap">💳 IAP</span>'
+      : app.contains_ads ? '<span class="chip chip-money-ads">📢 Ads</span>'
+      : '<span class="chip chip-money-free">🎁 Free</span>';
+    const ratingChip = (typeof app.score === 'number')
+      ? `<span class="chip chip-rating">★ ${app.score.toFixed(1)}</span>` : '';
+    const installsChip = app.installs_per_month
+      ? `<span class="chip chip-installs">🚀 ${fmtInst(app.installs_per_month)}/mo</span>` : '';
+    const releasedTxt = app.released ? `Released ${new Date(app.released).toLocaleDateString(undefined, {year:'numeric', month:'short'})}` : '';
+    const icon = app.icon ? `<img src="${escapeHtml(app.icon)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : '<div class="app-banner-fallback"></div>';
+    bannerSlot.innerHTML = `
+      <div class="app-banner">
+        <div class="app-banner-icon">${icon}</div>
+        <div class="app-banner-id">
+          <h1 class="app-banner-title">${escapeHtml(app.title || pkg)}</h1>
+          <div class="app-banner-meta">${escapeHtml(app.developer || '')} ${releasedTxt ? '· ' + escapeHtml(releasedTxt) : ''} · <code>${escapeHtml(pkg)}</code></div>
+          <div class="app-banner-chips">${ratingChip} ${installsChip} ${moneyChip}</div>
+        </div>
+      </div>`;
+  }
+
+  // ---- Render the About + Q&A block (visible on every ?show= view) ----
+  loadAndRenderAbout(pkg);
+
+  // ---- Dispatch on ?show= ----
+  const content = $('content');
+  if (show === 'review') renderReviews();
+  else if (show === 'developer') renderDeveloper();
+  else if (show === 'revenue') renderRevenue();
+  else { content.innerHTML = `<div class="empty"><div class="empty-title">Unknown view</div><a href="/dashboard">← Back</a></div>`; }
+
+  // ===========================================
+  // About + Q&A
+  // ===========================================
+  async function loadAndRenderAbout(pkg) {
+    const slot = $('about-slot');
+    slot.innerHTML = `<div class="about-skel"><span class="spinner"></span>Loading app insights…</div>`;
+    let data = null;
+    try {
+      const r = await fetch(`/api/app/${encodeURIComponent(pkg)}/about`, { cache: 'no-store' });
+      if (r.ok) data = await r.json();
+    } catch (e) { console.warn('about fetch failed', e); }
+    if (!data) { slot.innerHTML = ''; return; }
+
+    const desc = (data.description || '').trim();
+    const qa = data.qa || null;
+
+    const descBlock = desc ? `
+      <div class="about-card about-desc">
+        <div class="about-h">📄 What it does (raw description)</div>
+        <div class="about-desc-body" id="about-desc-body">${escapeHtml(desc.slice(0, 360))}${desc.length > 360 ? '…' : ''}</div>
+        ${desc.length > 360 ? `<button class="about-more" id="about-more">Show full description</button>` : ''}
+      </div>` : '';
+
+    const qaBlock = qa ? `
+      <div class="about-card about-qa">
+        <div class="about-h">🔎 Quick read for creators</div>
+        <div class="qa-grid">
+          ${Object.entries(qa).map(([key, item]) => `
+            <div class="qa-item qa-${escapeHtml(key)}">
+              <div class="qa-q">${escapeHtml(item.label)}</div>
+              <div class="qa-a">${escapeHtml(item.answer || '—')}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : `
+      <div class="about-card about-qa about-qa-pending">
+        <div class="about-h">🔎 Quick read for creators</div>
+        <div style="font-size: 13px; color: var(--muted);">Computing app insights… reload the page in a moment.</div>
+      </div>`;
+
+    slot.innerHTML = descBlock + qaBlock;
+
+    const moreBtn = $('about-more');
+    if (moreBtn) {
+      moreBtn.onclick = () => {
+        $('about-desc-body').textContent = desc;
+        moreBtn.remove();
+      };
+    }
+  }
+
+  // ===========================================
+  // VIEW: Reviews
+  // ===========================================
+  function renderReviews() {
+    // Find reviews_* tables
+    const tablesRows = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews_%' AND name NOT IN ('reviews_daily') ORDER BY name");
+    const tables = tablesRows.length ? tablesRows[0].values.map(r => r[0]) : [];
+    if (!tables.length) {
+      content.innerHTML = `<div class="empty"><div class="empty-title">No review tables in DB yet</div><div class="empty-sub">Run discovery + a fetch first.</div></div>`;
+      return;
+    }
+    const state = {
+      table: tables[0],
+      ratings: new Set([1,2,3,4,5]),
+      search: '',
+      page: 0,
+      pageSize: 25,
+      sort: 'posted_at', dir: 'desc',
+    };
+
+    content.innerHTML = `
+      <h2 class="section-title">📖 User reviews</h2>
+      <div class="filters">
+        <label>Source
+          <select id="f-table">${tables.map(t => `<option ${t===state.table?'selected':''}>${t}</option>`).join('')}</select>
+        </label>
+        <label>Rating
+          <div class="ratings" id="f-ratings">
+            ${[1,2,3,4,5].map(n => `<span class="pill ${state.ratings.has(n)?'active':''}" data-r="${n}">${n}★</span>`).join('')}
+          </div>
+        </label>
+        <label>Search
+          <input id="f-search" type="search" placeholder="contains…" />
+        </label>
+        <label>Page size
+          <select id="f-page"><option>25</option><option>50</option><option>100</option></select>
+        </label>
+      </div>
+      <div class="stats" id="r-stats"></div>
+      <div id="reviews-slot"><div class="loading-block"><span class="spinner"></span>Loading reviews…</div></div>
+      <div class="pager">
+        <button id="r-prev">← Prev</button>
+        <span class="info" id="r-info"></span>
+        <button id="r-next">Next →</button>
+      </div>
+    `;
+
+    function buildWhere() {
+      const params = { '$pkg': pkg };
+      const clauses = ['package_name = $pkg'];
+      if (state.ratings.size && state.ratings.size < 5) {
+        const ids = [...state.ratings];
+        const placeholders = ids.map((_, i) => '$r' + i).join(',');
+        ids.forEach((r, i) => params['$r' + i] = r);
+        clauses.push('rating IN (' + placeholders + ')');
+      }
+      if (state.search.trim()) {
+        clauses.push("text LIKE $s");
+        params.$s = '%' + state.search.trim() + '%';
+      }
+      return { where: 'WHERE ' + clauses.join(' AND '), params };
+    }
+
+    // Reload reviews.db from the server (used after a fetch completes server-side
+    // while the user was elsewhere — the in-browser sql.js cache is stale).
+    async function reloadDb() {
+      const buf = await fetch('/reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => r.arrayBuffer());
+      db = new SQL.Database(new Uint8Array(buf));
+    }
+
+    // Quick "is this package's reviews already in our local DB?" check.
+    function _localReviewCount() {
+      const r = safeExec(`SELECT COUNT(*) FROM ${state.table} WHERE package_name=$pkg`, { '$pkg': pkg });
+      return r.length ? r[0].values[0][0] : 0;
+    }
+
+    // Server-side fetch state for this package.
+    async function _serverFetchState() {
+      try {
+        const r = await fetch('/api/status', { cache: 'no-store' });
+        if (!r.ok) return null;
+        const j = await r.json();
+        return (j.items || []).find(it => it.package_name === pkg) || null;
+      } catch { return null; }
+    }
+
+    function _waitingMarkup(state, count) {
+      const stateLabels = {
+        queued:   'Queued — waiting for a worker…',
+        fetching: 'Fetching reviews from Google Play…',
+        unknown:  'Working on it…',
+      };
+      const label = stateLabels[state] || stateLabels.unknown;
+      return `
+        <div class="empty">
+          <div class="page-loader-spinner" style="margin: 0 auto 14px;"></div>
+          <div class="empty-title">${escapeHtml(label)}</div>
+          <div class="empty-sub">This usually takes 10–30 seconds. The page will refresh automatically when the reviews land.${count ? ` Fetched so far: <b>${count}</b>` : ''}</div>
+          <div style="margin-top: 12px; font-size: 11px; color: var(--muted);">You can leave this page — the fetch will finish on the server. Come back any time.</div>
+        </div>`;
+    }
+
+    function _errorMarkup(err) {
+      return `
+        <div class="empty">
+          <div class="empty-title">❌ Fetch failed</div>
+          <div class="empty-sub">${escapeHtml(err || 'Unknown error')}</div>
+          <button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button>
+        </div>`;
+    }
+
+    // Polling loop — kicks in whenever the server says "fetching" or "queued".
+    let _pollTimer = null;
+    let _pollStart = 0;          // wall time when this poll session started
+    const _POLL_STUCK_MS = 90_000; // 90s of "fetching" with no completion → flag as stuck
+
+    async function _poll() {
+      const s = await _serverFetchState();
+      const slot = $('reviews-slot');
+      if (!s) {
+        // Server has no record of any fetch — show idle empty state.
+        clearTimeout(_pollTimer); _pollStart = 0;
+        slot.innerHTML = `
+          <div class="empty">
+            <div class="empty-title">No reviews fetched yet for this app</div>
+            <div class="empty-sub">Reviews are pulled on demand from Google Play. Fetching takes ~10–30 seconds.${userIsFree ? ' Free plan: 3 fetches per week.' : ''}</div>
+            <button class="btn-primary" id="fetch-btn">📥 Fetch reviews for this app</button>
+          </div>`;
+        wireFetchBtn();
+        return;
+      }
+      if (s.state === 'done') {
+        clearTimeout(_pollTimer); _pollStart = 0;
+        // The job completed on the server. Our local sql.js may pre-date the DB write.
+        // Reload, then either render reviews (success) or fall back to empty state.
+        await reloadDb();
+        if (_localReviewCount() > 0) {
+          render();   // success path — reviews are in DB now
+          return;
+        }
+        // Edge case: status says done but 0 rows landed (rare). Show success-but-empty.
+        slot.innerHTML = `
+          <div class="empty">
+            <div class="empty-title">Fetch finished, but Play returned no reviews</div>
+            <div class="empty-sub">This app may genuinely have no English reviews yet, or be region-locked. Try a different country.</div>
+            <button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button>
+          </div>`;
+        wireFetchBtn();
+        return;
+      }
+      if (s.state === 'error') {
+        clearTimeout(_pollTimer); _pollStart = 0;
+        slot.innerHTML = _errorMarkup(s.error);
+        wireFetchBtn();
+        return;
+      }
+      // queued or fetching — start the deadline timer on first hit
+      if (!_pollStart) _pollStart = Date.now();
+
+      // If the server's started_at is more than 90s old AND we haven't seen progress,
+      // assume the worker is stuck. Show a Retry option without waiting forever.
+      const ageMs = s.started_at ? (Date.now() - new Date(s.started_at).getTime()) : 0;
+      const stuckByAge = ageMs > _POLL_STUCK_MS;
+      const stuckByPoll = (Date.now() - _pollStart) > _POLL_STUCK_MS;
+      if (stuckByAge || stuckByPoll) {
+        clearTimeout(_pollTimer); _pollStart = 0;
+        slot.innerHTML = `
+          <div class="empty">
+            <div class="empty-title">⏳ This is taking longer than expected</div>
+            <div class="empty-sub">The server says it's still <code>${escapeHtml(s.state)}</code>${s.started_at ? ' (started ' + Math.round(ageMs/1000) + 's ago)' : ''}, but we haven't seen progress. The worker may have stalled.</div>
+            <button class="btn-primary" id="fetch-btn">🔁 Retry fetch</button>
+          </div>`;
+        wireFetchBtn();
+        return;
+      }
+
+      // Still progressing — show waiting markup and reschedule
+      slot.innerHTML = _waitingMarkup(s.state, s.count || 0);
+      _pollTimer = setTimeout(_poll, 2500);
+    }
+
+    function render() {
+      const slot = $('reviews-slot');
+      const { where, params } = buildWhere();
+      const cnt = safeExec(`SELECT COUNT(*) FROM ${state.table} ${where}`, params);
+      const total = cnt.length ? cnt[0].values[0][0] : 0;
+
+      if (total === 0) {
+        // We have 0 rows for this package matching current filters.
+        // Two possibilities:
+        //  (a) reviews ARE in DB but filters exclude them — fall through to empty-filter msg
+        //  (b) no reviews for this package at all — kick off the status check
+        const totalForPkg = _localReviewCount();
+        if (totalForPkg > 0) {
+          slot.innerHTML = `<div class="empty"><div class="empty-title">No reviews match these filters</div><div class="empty-sub">Try clearing the rating chips or search box.</div></div>`;
+          $('r-stats').innerHTML = `0 of <b>${totalForPkg.toLocaleString()}</b> reviews`;
+          $('r-prev').disabled = true; $('r-next').disabled = true;
+          $('r-info').textContent = '';
+          return;
+        }
+        // No reviews at all for this package — check server state.
+        $('r-stats').innerHTML = 'Checking…';
+        $('r-prev').disabled = true; $('r-next').disabled = true;
+        $('r-info').textContent = '';
+        slot.innerHTML = `<div class="loading-block"><span class="spinner"></span>Checking fetch status…</div>`;
+        _poll();
+        return;
+      }
+
+      const offset = state.page * state.pageSize;
+      const rows = safeExec(`
+        SELECT review_id, rating, text, user_name, posted_at, thumbs_up, app_version
+        FROM ${state.table} ${where}
+        ORDER BY ${state.sort} ${state.dir}
+        LIMIT ${state.pageSize} OFFSET ${offset}
+      `, params);
+      const data = rows.length ? rows[0].values : [];
+
+      slot.innerHTML = `<div class="reviews-list">${
+        data.map(r => {
+          const [, rating, text, user, posted, thumbs, ver] = r;
+          const date = posted ? new Date(posted).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : '';
+          return `<div class="review-row">
+            <div class="review-rating rating-${rating}">${rating}★</div>
+            <div class="review-body">
+              <div class="review-text">${escapeHtml(text || '')}</div>
+              <div class="review-user">${escapeHtml(user || 'Anonymous')}${ver ? ' · v' + escapeHtml(ver) : ''}${typeof thumbs === 'number' && thumbs > 0 ? ' · 👍 ' + thumbs : ''}</div>
+            </div>
+            <div class="review-meta">${date}</div>
+          </div>`;
+        }).join('')
+      }</div>`;
+
+      $('r-stats').innerHTML = `<b>${total.toLocaleString()}</b> reviews matching filters`;
+      const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+      $('r-info').textContent = `Page ${state.page+1} / ${totalPages}`;
+      $('r-prev').disabled = state.page === 0;
+      $('r-next').disabled = state.page >= totalPages - 1;
+    }
+
+    function wireFetchBtn() {
+      const fb = $('fetch-btn');
+      if (!fb) return;
+      fb.onclick = async () => {
+        fb.disabled = true; fb.textContent = '⏳ Starting fetch…';
+        try {
+          const r = await fetch('/api/fetch?pkg=' + encodeURIComponent(pkg), { method: 'POST' });
+          if (r.status === 403) {
+            const j = await r.json().catch(() => ({}));
+            fb.textContent = '🔒 ' + (j.error === 'weekly_limit_hit' ? 'Weekly limit reached' : 'Limit reached');
+            return;
+          }
+          if (!r.ok) { fb.textContent = '❌ HTTP ' + r.status; return; }
+          // Server queued the job. Hand off to the shared poller — it'll show
+          // the waiting-state UI, refresh when done, and survive page reloads
+          // (next time you land on this page, _poll picks up wherever the
+          // server is at).
+          _poll();
+        } catch (e) {
+          fb.disabled = false; fb.textContent = '📥 Fetch reviews for this app';
+          console.error(e);
+        }
+      };
+    }
+
+    // Wire filter controls
+    $('f-table').onchange = e => { state.table = e.target.value; state.page = 0; render(); };
+    $('f-search').oninput = e => { state.search = e.target.value; state.page = 0; render(); };
+    $('f-page').onchange = e => { state.pageSize = parseInt(e.target.value, 10) || 25; state.page = 0; render(); };
+    $('f-ratings').onclick = e => {
+      const p = e.target.closest('.pill');
+      if (!p) return;
+      const r = parseInt(p.dataset.r, 10);
+      if (state.ratings.has(r)) state.ratings.delete(r); else state.ratings.add(r);
+      if (!state.ratings.size) state.ratings = new Set([1,2,3,4,5]);
+      p.classList.toggle('active', state.ratings.has(r));
+      state.page = 0; render();
+    };
+    $('r-prev').onclick = () => { state.page--; render(); window.scrollTo({top: 0}); };
+    $('r-next').onclick = () => { state.page++; render(); window.scrollTo({top: 0}); };
+
+    render();
+  }
+
+  // ===========================================
+  // VIEW: Developer (siblings + portfolio)
+  // ===========================================
+  function renderDeveloper() {
+    if (!app || !app.developer_id) {
+      content.innerHTML = `<div class="empty"><div class="empty-title">Developer info unavailable</div><div class="empty-sub">We don't have a developer-id for this app yet. Try the developer-lookup tool from the legacy view.</div></div>`;
+      return;
+    }
+    const r = db.exec(`
+      SELECT package_name, title, icon, installs_per_month, score, released
+      FROM apps_ranked WHERE developer_id=$d AND package_name<>$pkg
+      ORDER BY installs_per_month DESC NULLS LAST LIMIT 50
+    `, { '$d': app.developer_id, '$pkg': pkg });
+    const rows = r.length ? r[0].values : [];
+
+    content.innerHTML = `
+      <h2 class="section-title">👤 ${escapeHtml(app.developer || 'Developer')}</h2>
+      <div class="section-card">
+        <p style="margin: 0 0 12px; color: var(--muted); font-size: 13px;">
+          Other apps from <b>${escapeHtml(app.developer)}</b> in our DB.
+          ${rows.length === 0 ? '' : `${rows.length} sibling app${rows.length===1?'':'s'} ranked by install velocity.`}
+        </p>
+        ${rows.length === 0 ? `
+          <div class="empty">
+            <div class="empty-title">No sibling apps in our DB</div>
+            <div class="empty-sub">Either this developer has only one app, or we haven't discovered their others yet.</div>
+          </div>
+        ` : `
+          <div class="dev-list">
+            ${rows.map(row => {
+              const [pn, title, icon, ipm, score, released] = row;
+              return `<a class="dev-app" href="/app/${encodeURIComponent(pn)}/details?show=review" style="text-decoration:none;color:inherit">
+                ${icon ? `<img src="${escapeHtml(icon)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : '<div></div>'}
+                <div class="dev-app-title">${escapeHtml(title || pn)}</div>
+                <div class="dev-app-num">${fmtInst(ipm)}/mo</div>
+                <div class="dev-app-num">${score ? '★ ' + score.toFixed(1) : '—'}</div>
+              </a>`;
+            }).join('')}
+          </div>
+        `}
+      </div>`;
+  }
+
+  // ===========================================
+  // VIEW: Revenue (Fermi est + Pro lock)
+  // ===========================================
+  function renderRevenue() {
+    if (!app) {
+      content.innerHTML = `<div class="empty"><div class="empty-title">App not in DB</div></div>`;
+      return;
+    }
+    const ipm = app.installs_per_month || 0;
+    const cumInstalls = app.min_installs || 0;
+    // Light Fermi: ARPU varies; show RANGE not exact number.
+    const arpuLow  = app.offers_iap ? 0.4  : (app.contains_ads ? 0.15 : 0.05);
+    const arpuHigh = app.offers_iap ? 1.5  : (app.contains_ads ? 0.5  : 0.10);
+    const mau = cumInstalls * 0.10;   // active fraction proxy
+    const lowEst  = Math.round(mau * arpuLow);
+    const highEst = Math.round(mau * arpuHigh);
+    const moneyName = app.offers_iap ? 'In-app purchases (subscriptions or one-time)' : (app.contains_ads ? 'Ad-supported' : 'No ads · no IAP');
+
+    content.innerHTML = `
+      <h2 class="section-title">💰 Monetization & revenue estimate</h2>
+
+      <div class="section-card">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+          <div>
+            <div style="color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;">Monetization</div>
+            <div style="font-size: 16px; font-weight: 700;">${escapeHtml(moneyName)}</div>
+          </div>
+          <div>
+            <div style="color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;">Cumulative installs</div>
+            <div style="font-size: 16px; font-weight: 700;">${fmtInst(cumInstalls)}</div>
+          </div>
+          <div>
+            <div style="color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;">Installs / month (est.)</div>
+            <div style="font-size: 16px; font-weight: 700;">${fmtInst(ipm)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div style="font-size: 13px; color: var(--muted); margin-bottom: 6px;">Order-of-magnitude monthly revenue (Fermi estimate, range)</div>
+        <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.01em;">${fmtRev(lowEst)} – ${fmtRev(highEst)}<sup style="font-size: 10px; color: var(--muted); vertical-align: super; margin-left: 6px; font-weight: 600;">est.</sup></div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.5;">
+          Calculated from cumulative installs × active-fraction (~10%) × per-genre ARPU (${arpuLow.toFixed(2)}–${arpuHigh.toFixed(2)} USD/MAU/month) × monetization multiplier.
+          Real per-app revenue requires panel data from Sensor Tower / data.ai (enterprise pricing).
+        </div>
+      </div>
+
+      ${userIsFree ? `
+        <div class="pro-lock">
+          <div class="pro-lock-icon">🔒</div>
+          <div class="pro-lock-title">Real revenue + 30-day trends are a Pro feature</div>
+          <div class="pro-lock-sub">Sensor-Tower-grade revenue estimates (per-country, per-day) are available on the Pro plan once we add the data partnership. For now, the Fermi estimate above is the best we can show.</div>
+          <a class="btn-primary" href="/dashboard">See plans →</a>
+        </div>` : ''}
+    `;
+  }
+
+})();
+</script>
+
+</body>
+</html>

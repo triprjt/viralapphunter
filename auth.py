@@ -93,6 +93,87 @@ CREATE TABLE IF NOT EXISTS user_activity (
   created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_activity_user_time ON user_activity(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS user_watchlist (
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  package_name TEXT NOT NULL,
+  starred_at   TEXT NOT NULL,
+  PRIMARY KEY (user_id, package_name)
+);
+
+CREATE TABLE IF NOT EXISTS user_saved_searches (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  payload    TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (user_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS weekly_reports (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  category_id   TEXT NOT NULL,
+  year          INTEGER NOT NULL,
+  week          INTEGER NOT NULL,
+  generated_at  TEXT NOT NULL,
+  payload       TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_unique ON weekly_reports(category_id, year, week);
+
+-- Cached top-N viral apps per category, refreshed weekly. Drives the dashboard.
+-- Bead 6 + Bead 7.
+CREATE TABLE IF NOT EXISTS monthly_hot_apps (
+  category_id   TEXT NOT NULL,
+  computed_at   TEXT NOT NULL,
+  rank          INTEGER NOT NULL,
+  package_name  TEXT NOT NULL,
+  payload       TEXT NOT NULL,
+  PRIMARY KEY (category_id, computed_at, rank)
+);
+CREATE INDEX IF NOT EXISTS idx_mha_latest ON monthly_hot_apps(category_id, computed_at DESC);
+
+-- Per-package metadata snapshots; one row per detected change. Drives 30-day deltas.
+-- Bead 9.
+CREATE TABLE IF NOT EXISTS app_history (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  package_name  TEXT NOT NULL,
+  captured_at   TEXT NOT NULL,
+  min_installs  INTEGER,
+  score         REAL,
+  ratings_count INTEGER,
+  reviews_count INTEGER,
+  histogram_1   INTEGER, histogram_2 INTEGER, histogram_3 INTEGER,
+  histogram_4   INTEGER, histogram_5 INTEGER,
+  version       TEXT,
+  recent_changes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_apphist ON app_history(package_name, captured_at DESC);
+
+-- Daily review buckets per (package, country, date). Powers low-star-% trend.
+-- Bead 9.
+CREATE TABLE IF NOT EXISTS reviews_daily (
+  package_name TEXT NOT NULL,
+  country      TEXT NOT NULL,
+  date         TEXT NOT NULL,
+  count        INTEGER NOT NULL,
+  avg_rating   REAL,
+  rating_1     INTEGER, rating_2 INTEGER, rating_3 INTEGER,
+  rating_4     INTEGER, rating_5 INTEGER,
+  PRIMARY KEY (package_name, country, date)
+);
+
+-- Idempotency + observability for scheduled poller jobs.
+-- Bead 9 + Bead 10.
+CREATE TABLE IF NOT EXISTS poller_runs (
+  job_name      TEXT NOT NULL,
+  started_at    TEXT NOT NULL,
+  finished_at   TEXT,
+  status        TEXT,
+  rows_written  INTEGER DEFAULT 0,
+  errors        TEXT,
+  PRIMARY KEY (job_name, started_at)
+);
+CREATE INDEX IF NOT EXISTS idx_poller_runs_job ON poller_runs(job_name, started_at DESC);
 """
 
 
@@ -116,6 +197,27 @@ def init_schema() -> None:
             conn.execute("ALTER TABLE users ADD COLUMN picked_categories TEXT")
         if "picked_goal" not in existing_cols:
             conn.execute("ALTER TABLE users ADD COLUMN picked_goal TEXT")
+        if "theme" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN theme TEXT NOT NULL DEFAULT 'light'")
+        if "newsletter_subscribed" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN newsletter_subscribed INTEGER NOT NULL DEFAULT 0")
+        if "trial_started_at" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN trial_started_at TEXT")
+        # Defensive ALTER for apps_enriched.qa_json (per-app Q&A snapshot for the
+        # detail page's About section). Built by app_qa.py.
+        try:
+            ae_cols = {r[1] for r in conn.execute("PRAGMA table_info(apps_enriched)").fetchall()}
+            if ae_cols and "qa_json" not in ae_cols:
+                conn.execute("ALTER TABLE apps_enriched ADD COLUMN qa_json TEXT")
+            if ae_cols and "qa_updated_at" not in ae_cols:
+                conn.execute("ALTER TABLE apps_enriched ADD COLUMN qa_updated_at TEXT")
+            if ae_cols and "review_sentiment_json" not in ae_cols:
+                conn.execute("ALTER TABLE apps_enriched ADD COLUMN review_sentiment_json TEXT")
+            if ae_cols and "review_sentiment_updated_at" not in ae_cols:
+                conn.execute("ALTER TABLE apps_enriched ADD COLUMN review_sentiment_updated_at TEXT")
+        except sqlite3.OperationalError:
+            # apps_enriched not yet created on a fresh install — discovery DDL handles it.
+            pass
         conn.commit()
     finally:
         conn.close()
@@ -140,7 +242,7 @@ def _redirect_uri() -> str:
     return f"{_site_url()}/auth/google/callback"
 
 
-def google_auth_url(next_url: str = "/app") -> str:
+def google_auth_url(next_url: str = "/dashboard") -> str:
     """Generates the Google OAuth authorization URL with a fresh CSRF state token."""
     client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
     if not client_id:
@@ -187,7 +289,7 @@ def _consume_state(state: str) -> str | None:
             pass
         conn.execute("DELETE FROM oauth_states WHERE state = ?", (state,))
         conn.commit()
-        return row[0] or "/app"
+        return row[0] or "/dashboard"
     finally:
         conn.close()
 
@@ -268,7 +370,8 @@ def get_user_by_session(token: str) -> dict | None:
     try:
         row = conn.execute(
             """SELECT u.id, u.email, u.name, u.picture, u.plan, u.is_admin,
-                      u.onboarded, u.picked_categories, u.picked_goal, s.expires_at
+                      u.onboarded, u.picked_categories, u.picked_goal, u.theme,
+                      u.newsletter_subscribed, u.trial_started_at, s.expires_at
                FROM sessions s JOIN users u ON u.id = s.user_id
                WHERE s.token = ?""",
             (token,),
@@ -276,7 +379,7 @@ def get_user_by_session(token: str) -> dict | None:
         if not row:
             return None
         try:
-            if datetime.fromisoformat(row[9]) < datetime.now(timezone.utc):
+            if datetime.fromisoformat(row[12]) < datetime.now(timezone.utc):
                 conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
                 conn.commit()
                 return None
@@ -290,6 +393,9 @@ def get_user_by_session(token: str) -> dict | None:
             "onboarded": bool(row[6]),
             "picked_categories": row[7] or "",
             "picked_goal": row[8] or "",
+            "theme": row[9] or "light",
+            "newsletter_subscribed": bool(row[10]),
+            "trial_started_at": row[11],
         }
     finally:
         conn.close()
@@ -297,41 +403,146 @@ def get_user_by_session(token: str) -> dict | None:
 
 # ---- Feature gating (Free-tier "generous taster") ----
 
-# Each feature: 1 distinct context per lifetime on Free. Paid tiers: unlimited (for now;
-# monthly quotas will layer on top later).
 PAID_PLANS = {"solo", "pro", "studio"}
+
+# Quota matrix: per (feature, plan) → (cap, window). cap=None means unlimited.
+# Window 'week' = rolling 7 days. 'lifetime' = forever.
+QUOTAS = {
+    "review_fetch": {
+        "free":   (3,    "week"),
+        "solo":   (None, "week"),
+        "pro":    (None, "week"),
+        "studio": (None, "week"),
+    },
+    "export": {
+        "free":   (1,    "week"),
+        "solo":   (10,   "week"),
+        "pro":    (None, "week"),
+        "studio": (None, "week"),
+    },
+    "developer_lookup": {
+        "free":   (1,    "lifetime"),
+        "solo":   (None, "lifetime"),
+        "pro":    (None, "lifetime"),
+        "studio": (None, "lifetime"),
+    },
+    "ai_summary": {
+        "free":   (1,    "lifetime"),
+        "solo":   (None, "lifetime"),
+        "pro":    (None, "lifetime"),
+        "studio": (None, "lifetime"),
+    },
+}
+
+
+def _quota_for(feature: str, plan: str) -> tuple[int | None, str]:
+    return QUOTAS.get(feature, {}).get(plan, (1, "lifetime"))
 
 
 def can_use_feature(user_id: int, feature: str, plan: str, context: str = "") -> tuple[bool, dict]:
-    """Returns (allowed, details). Free plan caps at 1 distinct context per feature, lifetime."""
-    if plan in PAID_PLANS:
+    """Returns (allowed, details). Cap+window come from QUOTAS; idempotent same-context retries pass."""
+    cap, window = _quota_for(feature, plan)
+    if cap is None:
         return True, {}
     conn = _conn()
     try:
-        # Already used this exact target? Allow (idempotent retry).
         same = conn.execute(
             "SELECT 1 FROM feature_usage WHERE user_id=? AND feature=? AND context=?",
             (user_id, feature, context or ""),
         ).fetchone()
-        if same:
+        if same and window == "lifetime":
+            # Lifetime: same-context retry is always free.
             return True, {"reason": "already_used_same_context"}
-        # Distinct count
+        if window == "week":
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            # Count distinct contexts inside the window.
+            n = conn.execute(
+                "SELECT COUNT(DISTINCT context) FROM feature_usage "
+                "WHERE user_id=? AND feature=? AND used_at >= ?",
+                (user_id, feature, cutoff),
+            ).fetchone()[0]
+            # Same-context inside window? Free retry.
+            in_window_same = conn.execute(
+                "SELECT 1 FROM feature_usage WHERE user_id=? AND feature=? AND context=? AND used_at >= ?",
+                (user_id, feature, context or "", cutoff),
+            ).fetchone()
+            if in_window_same:
+                return True, {"reason": "already_used_same_context", "window": window, "used": n, "cap": cap}
+            if n >= cap:
+                next_reset_row = conn.execute(
+                    "SELECT MIN(used_at) FROM feature_usage WHERE user_id=? AND feature=? AND used_at >= ?",
+                    (user_id, feature, cutoff),
+                ).fetchone()
+                next_reset = None
+                if next_reset_row and next_reset_row[0]:
+                    try:
+                        next_reset = (datetime.fromisoformat(next_reset_row[0]) + timedelta(days=7)).isoformat()
+                    except Exception:
+                        next_reset = None
+                return False, {
+                    "reason": "weekly_limit_hit", "feature": feature, "window": window,
+                    "used": n, "cap": cap, "next_reset": next_reset,
+                }
+            return True, {"window": window, "used": n, "cap": cap}
+        # Lifetime
         n = conn.execute(
             "SELECT COUNT(*) FROM feature_usage WHERE user_id=? AND feature=?",
             (user_id, feature),
         ).fetchone()[0]
     finally:
         conn.close()
-    if n >= 1:
-        return False, {"reason": "free_tier_used", "feature": feature, "samples_used": n}
-    return True, {}
+    if n >= cap:
+        return False, {"reason": "free_tier_used", "feature": feature, "window": "lifetime",
+                        "used": n, "cap": cap}
+    return True, {"window": "lifetime", "used": n, "cap": cap}
+
+
+def get_quota_status(user_id: int, plan: str) -> dict:
+    """Returns per-feature {used, cap, window, next_reset} for the dashboard quota tracker."""
+    out = {}
+    conn = _conn()
+    try:
+        for feature in ("review_fetch", "developer_lookup", "ai_summary", "export"):
+            cap, window = _quota_for(feature, plan)
+            if cap is None:
+                out[feature] = {"used": 0, "cap": None, "window": window, "next_reset": None}
+                continue
+            if window == "week":
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+                n = conn.execute(
+                    "SELECT COUNT(DISTINCT context) FROM feature_usage "
+                    "WHERE user_id=? AND feature=? AND used_at >= ?",
+                    (user_id, feature, cutoff),
+                ).fetchone()[0]
+                next_reset = None
+                if n >= cap:
+                    row = conn.execute(
+                        "SELECT MIN(used_at) FROM feature_usage WHERE user_id=? AND feature=? AND used_at >= ?",
+                        (user_id, feature, cutoff),
+                    ).fetchone()
+                    if row and row[0]:
+                        try:
+                            next_reset = (datetime.fromisoformat(row[0]) + timedelta(days=7)).isoformat()
+                        except Exception:
+                            pass
+                out[feature] = {"used": n, "cap": cap, "window": "week", "next_reset": next_reset}
+            else:
+                n = conn.execute(
+                    "SELECT COUNT(*) FROM feature_usage WHERE user_id=? AND feature=?",
+                    (user_id, feature),
+                ).fetchone()[0]
+                out[feature] = {"used": n, "cap": cap, "window": "lifetime", "next_reset": None}
+    finally:
+        conn.close()
+    return out
 
 
 def record_feature_use(user_id: int, feature: str, context: str = "") -> None:
+    """Upserts (user_id, feature, context) and refreshes used_at — so weekly windows track most-recent use."""
     conn = _conn()
     try:
         conn.execute(
-            "INSERT OR IGNORE INTO feature_usage (user_id, feature, used_at, context) VALUES (?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO feature_usage (user_id, feature, used_at, context) VALUES (?, ?, ?, ?)",
             (user_id, feature, now_iso(), context or ""),
         )
         conn.commit()
@@ -399,6 +610,101 @@ def log_activity(user_id: int, action: str, context: str = "", metadata: dict | 
             conn.close()
     except Exception:
         pass  # never crash a request because activity logging failed
+
+
+# ---- Watchlist ----
+
+def watchlist_list(user_id: int) -> list[dict]:
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            "SELECT package_name, starred_at FROM user_watchlist WHERE user_id=? ORDER BY starred_at DESC",
+            (user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return [{"package_name": r[0], "starred_at": r[1]} for r in rows]
+
+
+def watchlist_add(user_id: int, package_name: str) -> None:
+    conn = _conn()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO user_watchlist (user_id, package_name, starred_at) VALUES (?, ?, ?)",
+            (user_id, package_name, now_iso()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def watchlist_remove(user_id: int, package_name: str) -> None:
+    conn = _conn()
+    try:
+        conn.execute(
+            "DELETE FROM user_watchlist WHERE user_id=? AND package_name=?",
+            (user_id, package_name),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ---- Saved searches ----
+
+def saved_searches_list(user_id: int) -> list[dict]:
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            "SELECT id, name, payload, created_at FROM user_saved_searches WHERE user_id=? ORDER BY created_at DESC",
+            (user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    out = []
+    for r in rows:
+        try: payload = json.loads(r[2])
+        except Exception: payload = {}
+        out.append({"id": r[0], "name": r[1], "payload": payload, "created_at": r[3]})
+    return out
+
+
+def saved_search_add(user_id: int, name: str, payload: dict) -> int:
+    conn = _conn()
+    try:
+        cur = conn.execute(
+            "INSERT OR REPLACE INTO user_saved_searches (user_id, name, payload, created_at) VALUES (?, ?, ?, ?)",
+            (user_id, name, json.dumps(payload), now_iso()),
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def saved_search_remove(user_id: int, search_id: int) -> None:
+    conn = _conn()
+    try:
+        conn.execute(
+            "DELETE FROM user_saved_searches WHERE user_id=? AND id=?",
+            (user_id, search_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ---- Theme ----
+
+def set_user_theme(user_id: int, theme: str) -> None:
+    if theme not in ("dark", "light"):
+        return
+    conn = _conn()
+    try:
+        conn.execute("UPDATE users SET theme=? WHERE id=?", (theme, user_id))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_recent_activity(user_id: int, limit: int = 100) -> list[dict]:
