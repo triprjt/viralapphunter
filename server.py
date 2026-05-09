@@ -1767,7 +1767,24 @@ class Handler(SimpleHTTPRequestHandler):
         if url.path == "/api/discovery_status":
             self._send_json(200, _discovery_progress())
             return
-        super().do_GET()
+
+        # Explicit static-file allow-list. The app's static surface is just
+        # reviews.db (auth-gated) — everything else is served via routes above.
+        # Without this guard, SimpleHTTPRequestHandler.do_GET() would happily
+        # serve any file in the working directory: source code, .env, etc.
+        if url.path == "/reviews.db":
+            user = self._current_user()
+            if not user:
+                self._send_json(403, {"ok": False, "error": "auth required"})
+                return
+            # Authenticated — serve via SimpleHTTPRequestHandler
+            super().do_GET()
+            return
+
+        # Anything else 404s. No directory traversal, no source-code leaks.
+        self.send_response(404)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _read_json_body(self) -> dict:
         try:

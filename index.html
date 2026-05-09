@@ -864,28 +864,35 @@
     const content = document.getElementById('content');
     const dbmeta = document.getElementById('dbmeta');
 
-    let SQL, db;
-    try {
-      SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
-      const buf = await fetch('reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => {
-        if (!r.ok) throw new Error('reviews.db fetch failed: ' + r.status);
-        return r.arrayBuffer();
-      });
-      db = new SQL.Database(new Uint8Array(buf));
-    } catch (e) {
-      content.innerHTML = `<div class="empty">Failed to load DB: ${e.message}<br><br>Run <code>python3 -m http.server 8000</code> in this folder and open <code>http://localhost:8000</code>.</div>`;
-      return;
+    // sql.js + reviews.db are NOT loaded upfront anymore. The dashboard
+    // (the default landing) reads exclusively from /api/me/dashboard. Legacy
+    // views that still query the local SQLite (Reviews / Niches / Viral Ranking
+    // tabs) lazy-load via _ensureDb() below, only when actually navigated to.
+    // This keeps the first-paint snappy and avoids shipping the 70+ MB DB
+    // (with user emails / session tokens) to every visitor.
+    let SQL = null, db = null;
+    let _dbLoadPromise = null;
+    async function _ensureDb() {
+      if (db) return db;
+      if (_dbLoadPromise) return _dbLoadPromise;
+      _dbLoadPromise = (async () => {
+        SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+        const buf = await fetch('/reviews.db?t=' + Date.now(), { cache: 'no-store' }).then(r => {
+          if (!r.ok) throw new Error('reviews.db fetch failed: ' + r.status);
+          return r.arrayBuffer();
+        });
+        db = new SQL.Database(new Uint8Array(buf));
+        return db;
+      })();
+      return _dbLoadPromise;
     }
 
-    // discover review tables (anything with the reviews schema)
-    // Reviews-content tables only — exclude aggregates like 'reviews_daily' that
-    // share the prefix but have a different schema (no review_id, posted_at, etc.).
-    const tablesRows = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews%' AND name NOT IN ('reviews_daily') ORDER BY name");
-    const tables = tablesRows.length ? tablesRows[0].values.map(r => r[0]) : [];
-    const hasDiscovered = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='discovered_apps'").length > 0;
-    const hasRanking = db.exec("SELECT name FROM sqlite_master WHERE type='view' AND name='apps_ranked'").length > 0;
-    const hasNiches = db.exec("SELECT name FROM sqlite_master WHERE type='view' AND name='niche_saturation'").length > 0;
-    if (!tables.length && !hasDiscovered) { content.innerHTML = '<div class="empty">No reviews or discovered_apps tables found.</div>'; return; }
+    // Stub schema-flag values used by legacy view code paths. The flags are no
+    // longer authoritative — they're set after _ensureDb() actually completes.
+    let tables = [];
+    let hasDiscovered = false;
+    let hasRanking = false;
+    let hasNiches = false;
     // Tab bar removed from primary nav (Bead 1). Tabs still exist in DOM for setView()
     // toggling and deep-link navigation but never display.
     // document.getElementById('tabs').style.display = 'flex';
@@ -1133,6 +1140,7 @@
     }
 
     function safeExec(sql, params) {
+      if (!db) return [];   // legacy views before lazy db-load completes
       try { return db.exec(sql, params); }
       catch (e) {
         console.error('SQL error:', e, sql, params);
@@ -1750,10 +1758,19 @@
       return parts.join(' · ');
     }
 
-    function renderRankingView() {
+    async function renderRankingView() {
       if (userIsFree && userPickedCats.length === 0) {
         renderEmptyStateInto(content, 'ranking');
         return;
+      }
+      // Lazy-load DB on first hit to a legacy DB-backed view
+      if (!db) {
+        content.innerHTML = '<div class="empty">Loading ranking database…</div>';
+        try { await _ensureDb(); }
+        catch (e) {
+          content.innerHTML = `<div class="empty">Failed to load review database: ${escapeHtml(e.message)}</div>`;
+          return;
+        }
       }
       const sel = (v, cur) => String(v) === String(cur) ? ' selected' : '';
       content.innerHTML = `
@@ -2188,6 +2205,14 @@
 
     async function renderNichesView() {
       content.innerHTML = `<div class="loading">Loading categories…</div>`;
+      // Lazy-load DB on first hit to a legacy DB-backed view
+      if (!db) {
+        try { await _ensureDb(); }
+        catch (e) {
+          content.innerHTML = `<div class="empty">Failed to load review database: ${escapeHtml(e.message)}</div>`;
+          return;
+        }
+      }
       let cats;
       try {
         cats = await loadCategories();
@@ -2441,10 +2466,27 @@
       return parts.join(' · ');
     }
 
-    function renderReviewsView() {
+    async function renderReviewsView() {
       if (userIsFree && userPickedCats.length === 0) {
         renderEmptyStateInto(content, 'reviews');
         return;
+      }
+      // Lazy-load sql.js + reviews.db on first navigation to a legacy DB-backed view.
+      if (!db) {
+        content.innerHTML = '<div class="empty">Loading review database… (first time may take a moment)</div>';
+        try {
+          await _ensureDb();
+          // Hydrate the schema flags now that the DB is loaded
+          const tablesRows = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'reviews%' AND name NOT IN ('reviews_daily') ORDER BY name");
+          tables = tablesRows.length ? tablesRows[0].values.map(r => r[0]) : [];
+          hasDiscovered = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='discovered_apps'").length > 0;
+          hasRanking = db.exec("SELECT name FROM sqlite_master WHERE type='view' AND name='apps_ranked'").length > 0;
+          hasNiches = db.exec("SELECT name FROM sqlite_master WHERE type='view' AND name='niche_saturation'").length > 0;
+          if (state && !state.table && tables.length) state.table = tables[0];
+        } catch (e) {
+          content.innerHTML = `<div class="empty">Failed to load review database: ${escapeHtml(e.message)}</div>`;
+          return;
+        }
       }
       // Header: makes navigation obvious + provides a back-link to the dashboard.
       const focusedPkg = (state.pkg && state.pkg !== 'all') ? state.pkg : null;
