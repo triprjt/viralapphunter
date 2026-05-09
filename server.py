@@ -2187,7 +2187,10 @@ def main() -> None:
     _ensure_schema()
     _sweep_stale_fetches()  # clean up rows orphaned by previous restart
     threading.Thread(target=_email_scheduler, daemon=True).start()
-    addr = ("127.0.0.1", 8000)
+    # Bind host/port are env-driven so prod can use a different port without code edits.
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8000"))
+    addr = (host, port)
     httpd = ThreadingHTTPServer(addr, Handler)
     print(f"serving on http://{addr[0]}:{addr[1]} (db={DB_PATH})")
     try:
