@@ -1,6 +1,6 @@
-apify:
-  actor_id: "epctex/google-play-scraper"
-  token_env: REDACTED_TOKEN
+# Apify integration retired — the project now uses the free google-play-scraper
+# library directly (see fetch_reviews.py). This block is kept only for
+# backwards compatibility with old CLI invocations and is ignored.
 
 apps:
   - com.whatsapp
